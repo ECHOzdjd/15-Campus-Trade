@@ -1,6 +1,10 @@
 # 校园二手交易平台（Campus Trade）
+## 团队成员
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+| 姓名   | 学号       | 分工     |
+|--------|------------|----------|
+| 马俊琛 | 2312190310 |  前端开发 | 
+| 王勇   | 2312190301 | 后端开发 | 
 
 ## 项目简介
 
@@ -10,43 +14,7 @@
 
 ---
 
-## 团队成员
-
-| 姓名   | 学号       | GitHub 用户名 | 分工     | 文档 |
-|--------|------------|---------------|----------|------|
-| 马俊琛 | 2312190310 | -             | 前端开发 | -    |
-| 王勇   | 2312190301 | ywang         | 后端开发 | [后端说明](docs/backend.md) · [API 文档](docs/api.md) |
-
----
-
-## 项目结构
-
-```
-campus-trade/
-├── README.md               # 项目整体说明（本文件）
-├── .gitignore              # Git 忽略规则
-├── docs/
-│   ├── backend.md          # 后端模块说明（王勇）
-│   └── api.md              # API 接口设计（王勇）
-└── backend/                # 后端代码目录
-    ├── src/
-    │   ├── app.js
-    │   ├── server.js
-    │   ├── config/
-    │   ├── routes/
-    │   ├── controllers/
-    │   ├── services/
-    │   ├── models/
-    │   ├── middlewares/
-    │   └── utils/
-    ├── sql/
-    ├── .env.example
-    └── package.json
-```
-
----
-
-## 技术栈
+## 技术栈（初步规划）
 
 ### 前端
 | 技术 | 说明 |

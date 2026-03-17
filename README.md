@@ -40,3 +40,7 @@
 | MySQL 8.0 | 主数据库（用户、商品、订单） |
 | Redis | 缓存层（热门商品、会话缓存） |
 | 本地存储 / 阿里云 OSS | 商品图片存储 |
+
+## Figma 设计文件
+
+🔗 [查看 Figma 设计](https://www.figma.com/make/xtuyI7R9oN4QiYfIoDJn4c/%E6%A0%A1%E5%9B%AD%E4%BA%8C%E6%89%8B%E4%BA%A4%E6%98%93%E5%B9%B3%E5%8F%B0?fullscreen=1&t=fCvGGPlqFoL84oYq-1&preview-route=%2Fproduct%2Fedit%2F1)

@@ -37,6 +37,10 @@ app.use(errorHandler)
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
+  console.log('\n📝 初始测试用户:')
+  console.log('  邮箱: user1@campustrade.com')
+  console.log('  密码: Password123!')
+  console.log('')
 })
 
 module.exports = app

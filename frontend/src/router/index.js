@@ -4,6 +4,7 @@ const routes = [
   { path: '/',               component: () => import('../views/HomeView.vue') },
   { path: '/login',          component: () => import('../views/LoginView.vue') },
   { path: '/register',       component: () => import('../views/RegisterView.vue') },
+  { path: '/test',           component: () => import('../views/TestView.vue') },
   { path: '/product/:id',    component: () => import('../views/ProductDetailView.vue') },
   { path: '/publish',        component: () => import('../views/PublishView.vue'),        meta: { requiresAuth: true } },
   { path: '/product/:id/edit', component: () => import('../views/EditProductView.vue'), meta: { requiresAuth: true } },

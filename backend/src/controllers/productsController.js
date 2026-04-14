@@ -1,105 +1,42 @@
-// 模拟数据库 - 实际项目应使用真实数据库
-const products = [
-  {
-    id: 1,
-    title: '全新苹果 MacBook Pro',
-    description: '14寸屏幕，M2 芯片，1TB 存储，几乎全新',
-    price: 5999.99,
-    category: 'electronics',
-    images: ['http://localhost:3000/uploads/product_1.jpg'],
-    status: 'selling',
-    sellerId: 1,
-    createdAt: new Date('2026-03-15'),
-    updatedAt: new Date('2026-03-15'),
-  },
-  {
-    id: 2,
-    title: '高等数学教科书',
-    description: '非常新，几乎没有使用过',
-    price: 29.99,
-    category: 'books',
-    images: ['http://localhost:3000/uploads/product_2.jpg'],
-    status: 'selling',
-    sellerId: 1,
-    createdAt: new Date('2026-03-10'),
-    updatedAt: new Date('2026-03-10'),
-  },
-]
-
-let nextProductId = 3
+const productModel = require('../models/productModel')
 
 // 获取产品列表
 async function getList(req, res, next) {
   try {
     const {
       page = 1,
-      pageSize = 10,
+      pageSize = 20,
       search = '',
       category = null,
       minPrice = null,
       maxPrice = null,
-      status = null,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
+      status = 'available',
+      sortBy = 'created_at',
+      sortOrder = 'DESC',
     } = req.query
 
-    let filtered = [...products]
-
-    // 搜索
-    if (search) {
-      filtered = filtered.filter(
-        p => p.title.toLowerCase().includes(search.toLowerCase()) ||
-             p.description.toLowerCase().includes(search.toLowerCase())
-      )
+    const filters = {
+      search: search || undefined,
+      category: category || undefined,
+      minPrice: minPrice ? parseFloat(minPrice) : undefined,
+      maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+      status: status || 'available',
+      sortBy: sortBy || 'created_at',
+      sortOrder: sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC',
+      page: Math.max(1, parseInt(page)),
+      pageSize: Math.max(1, Math.min(100, parseInt(pageSize))),
     }
 
-    // 分类过滤
-    if (category) {
-      filtered = filtered.filter(p => p.category === category)
-    }
-
-    // 价格过滤
-    if (minPrice !== null) {
-      filtered = filtered.filter(p => p.price >= parseFloat(minPrice))
-    }
-    if (maxPrice !== null) {
-      filtered = filtered.filter(p => p.price <= parseFloat(maxPrice))
-    }
-
-    // 状态过滤
-    if (status) {
-      filtered = filtered.filter(p => p.status === status)
-    }
-
-    // 排序
-    if (sortBy === 'price') {
-      filtered.sort((a, b) => sortOrder === 'asc' ? a.price - b.price : b.price - a.price)
-    } else {
-      filtered.sort((a, b) => {
-        const timeA = new Date(a.createdAt).getTime()
-        const timeB = new Date(b.createdAt).getTime()
-        return sortOrder === 'asc' ? timeA - timeB : timeB - timeA
-      })
-    }
-
-    // 分页
-    const pageNum = Math.max(1, parseInt(page))
-    const pageSizeNum = Math.max(1, parseInt(pageSize))
-    const start = (pageNum - 1) * pageSizeNum
-    const items = filtered.slice(start, start + pageSizeNum)
+    const { products, total } = await productModel.findAll(filters)
 
     res.json({
       code: 200,
       message: 'success',
       data: {
-        total: filtered.length,
-        page: pageNum,
-        pageSize: pageSizeNum,
-        totalPages: Math.ceil(filtered.length / pageSizeNum),
-        items: items.map(p => ({
-          ...p,
-          seller: { id: p.sellerId, username: '用户' + p.sellerId, avatar: null }
-        })),
+        products,
+        total,
+        page: filters.page,
+        pageSize: filters.pageSize,
       },
     })
   } catch (error) {
@@ -111,7 +48,7 @@ async function getList(req, res, next) {
 async function getDetail(req, res, next) {
   try {
     const { id } = req.params
-    const product = products.find(p => p.id === parseInt(id))
+    const product = await productModel.findById(parseInt(id))
 
     if (!product) {
       return res.status(404).json({
@@ -124,10 +61,7 @@ async function getDetail(req, res, next) {
     res.json({
       code: 200,
       message: 'success',
-      data: {
-        ...product,
-        seller: { id: product.sellerId, username: '用户' + product.sellerId, avatar: null }
-      },
+      data: product,
     })
   } catch (error) {
     next(error)
@@ -137,13 +71,13 @@ async function getDetail(req, res, next) {
 // 创建产品
 async function create(req, res, next) {
   try {
-    const { title, description, price, category, images } = req.body
+    const { title, description, price, category, condition, images } = req.body
 
     // 参数验证
-    if (!title || !description || !price || !category || !images) {
+    if (!title || !price || !category || !condition) {
       return res.status(400).json({
         code: 400,
-        message: '参数缺失',
+        message: '标题、价格、分类和成色不能为空',
         data: null,
       })
     }
@@ -152,14 +86,6 @@ async function create(req, res, next) {
       return res.status(400).json({
         code: 400,
         message: '标题长度必须在 1-100 之间',
-        data: null,
-      })
-    }
-
-    if (typeof description !== 'string' || description.length < 1 || description.length > 1000) {
-      return res.status(400).json({
-        code: 400,
-        message: '描述长度必须在 1-1000 之间',
         data: null,
       })
     }
@@ -173,44 +99,38 @@ async function create(req, res, next) {
       })
     }
 
-    if (!['electronics', 'books', 'furniture', 'clothing', 'other'].includes(category)) {
+    if (!['new', 'like_new', 'good', 'fair'].includes(condition)) {
       return res.status(400).json({
         code: 400,
-        message: '分类无效',
+        message: '成色无效',
         data: null,
       })
     }
 
-    if (!Array.isArray(images) || images.length === 0) {
+    if (images && (!Array.isArray(images) || images.length > 5)) {
       return res.status(400).json({
         code: 400,
-        message: '至少需要 1 张图片',
+        message: '图片数量不能超过 5 张',
         data: null,
       })
     }
 
-    const product = {
-      id: nextProductId++,
+    const productId = await productModel.create({
+      userId: req.user.id,
       title,
-      description,
+      description: description || '',
       price: priceNum,
       category,
-      images,
-      status: 'selling',
-      sellerId: req.user.id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
+      condition,
+      images: images || [],
+    })
 
-    products.push(product)
+    const product = await productModel.findById(productId)
 
     res.status(201).json({
       code: 201,
       message: 'success',
-      data: {
-        ...product,
-        seller: { id: req.user.id, username: '用户' + req.user.id, avatar: null }
-      },
+      data: product,
     })
   } catch (error) {
     next(error)
@@ -221,9 +141,9 @@ async function create(req, res, next) {
 async function update(req, res, next) {
   try {
     const { id } = req.params
-    const { title, description, price, category, images } = req.body
+    const { title, description, price, category, condition, images, status } = req.body
 
-    const product = products.find(p => p.id === parseInt(id))
+    const product = await productModel.findById(parseInt(id))
     if (!product) {
       return res.status(404).json({
         code: 404,
@@ -232,7 +152,8 @@ async function update(req, res, next) {
       })
     }
 
-    if (product.sellerId !== req.user.id) {
+    // 权限检查：只有卖家可以修改自己的产品
+    if (product.seller.id !== req.user.id) {
       return res.status(403).json({
         code: 403,
         message: '无权限修改此产品',
@@ -240,21 +161,23 @@ async function update(req, res, next) {
       })
     }
 
-    // 参数验证（类似创建）
-    if (title !== undefined) product.title = title
-    if (description !== undefined) product.description = description
-    if (price !== undefined) product.price = parseFloat(price)
-    if (category !== undefined) product.category = category
-    if (images !== undefined) product.images = images
-    product.updatedAt = new Date()
+    // 构建更新数据
+    const updateData = {}
+    if (title !== undefined) updateData.title = title
+    if (description !== undefined) updateData.description = description
+    if (price !== undefined) updateData.price = parseFloat(price)
+    if (category !== undefined) updateData.category = category
+    if (condition !== undefined) updateData.condition = condition
+    if (images !== undefined) updateData.images = images
+    if (status !== undefined) updateData.status = status
+
+    await productModel.update(parseInt(id), updateData)
+    const updatedProduct = await productModel.findById(parseInt(id))
 
     res.json({
       code: 200,
       message: 'success',
-      data: {
-        ...product,
-        seller: { id: product.sellerId, username: '用户' + product.sellerId, avatar: null }
-      },
+      data: updatedProduct,
     })
   } catch (error) {
     next(error)
@@ -265,9 +188,9 @@ async function update(req, res, next) {
 async function remove(req, res, next) {
   try {
     const { id } = req.params
-    const index = products.findIndex(p => p.id === parseInt(id))
 
-    if (index === -1) {
+    const product = await productModel.findById(parseInt(id))
+    if (!product) {
       return res.status(404).json({
         code: 404,
         message: '产品不存在',
@@ -275,7 +198,8 @@ async function remove(req, res, next) {
       })
     }
 
-    if (products[index].sellerId !== req.user.id) {
+    // 权限检查：只有卖家可以删除自己的产品
+    if (product.seller.id !== req.user.id) {
       return res.status(403).json({
         code: 403,
         message: '无权限删除此产品',
@@ -283,7 +207,7 @@ async function remove(req, res, next) {
       })
     }
 
-    products.splice(index, 1)
+    await productModel.delete(parseInt(id))
 
     res.json({
       code: 200,
@@ -298,27 +222,14 @@ async function remove(req, res, next) {
 // 获取我的产品列表
 async function getMine(req, res, next) {
   try {
-    const { page = 1, pageSize = 10 } = req.query
-
-    const userProducts = products.filter(p => p.sellerId === req.user.id)
-
-    const pageNum = Math.max(1, parseInt(page))
-    const pageSizeNum = Math.max(1, parseInt(pageSize))
-    const start = (pageNum - 1) * pageSizeNum
-    const items = userProducts.slice(start, start + pageSizeNum)
+    const products = await productModel.findByUserId(req.user.id)
 
     res.json({
       code: 200,
       message: 'success',
       data: {
-        total: userProducts.length,
-        page: pageNum,
-        pageSize: pageSizeNum,
-        totalPages: Math.ceil(userProducts.length / pageSizeNum),
-        items: items.map(p => ({
-          ...p,
-          seller: { id: p.sellerId, username: '用户' + p.sellerId, avatar: null }
-        })),
+        products,
+        total: products.length,
       },
     })
   } catch (error) {

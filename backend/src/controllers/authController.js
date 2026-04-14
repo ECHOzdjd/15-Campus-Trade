@@ -1,33 +1,17 @@
 const jwt = require('jsonwebtoken')
 const bcryptjs = require('bcryptjs')
-
-// 模拟数据库 - 实际项目应使用真实数据库
-const users = [
-  {
-    id: 1,
-    studentId: '2312190301',
-    email: 'user1@campustrade.com',
-    username: '张三',
-    avatar: null,
-    phone: null,
-    // 初始密码：Password123!
-    password: bcryptjs.hashSync('Password123!', 10),
-    createdAt: new Date('2026-03-01'),
-  }
-]
-
-let nextUserId = 2
+const userModel = require('../models/userModel')
 
 // 注册
 async function register(req, res, next) {
   try {
-    const { studentId, email, password, username } = req.body
+    const { email, password, username, phone } = req.body
 
     // 参数验证
-    if (!studentId || !email || !password || !username) {
+    if (!email || !password || !username) {
       return res.status(400).json({
         code: 400,
-        message: '参数缺失',
+        message: '邮箱、密码和用户名不能为空',
         data: null,
       })
     }
@@ -41,28 +25,37 @@ async function register(req, res, next) {
       })
     }
 
-    // 检查用户是否已存在
-    if (users.find(u => u.email === email || u.studentId === studentId)) {
+    // 检查邮箱是否已存在
+    const emailExists = await userModel.checkEmailExists(email)
+    if (emailExists) {
       return res.status(400).json({
         code: 400,
-        message: '学号或邮箱已被使用',
+        message: '邮箱已被使用',
+        data: null,
+      })
+    }
+
+    // 检查用户名是否已存在
+    const usernameExists = await userModel.checkUsernameExists(username)
+    if (usernameExists) {
+      return res.status(400).json({
+        code: 400,
+        message: '用户名已被使用',
         data: null,
       })
     }
 
     // 创建用户
-    const hashedPassword = bcryptjs.hashSync(password, 10)
-    const user = {
-      id: nextUserId++,
-      studentId,
-      email,
+    const hashedPassword = await bcryptjs.hash(password, 10)
+    const userId = await userModel.create({
       username,
-      avatar: null,
-      phone: null,
+      email,
       password: hashedPassword,
-      createdAt: new Date(),
-    }
-    users.push(user)
+      phone: phone || null,
+    })
+
+    // 获取新创建的用户信息
+    const user = await userModel.findById(userId)
 
     // 签发 Token
     const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
@@ -76,12 +69,11 @@ async function register(req, res, next) {
         token,
         user: {
           id: user.id,
-          studentId: user.studentId,
           email: user.email,
           username: user.username,
           avatar: user.avatar,
           phone: user.phone,
-          createdAt: user.createdAt,
+          createdAt: user.created_at,
         },
       },
     })
@@ -93,27 +85,39 @@ async function register(req, res, next) {
 // 登录
 async function login(req, res, next) {
   try {
-    const { email, password } = req.body
+    const { email, username, password } = req.body
+    const loginIdentifier = email || username
 
-    console.log('登录请求:', { email, password: password ? '***' : 'undefined' })
-    console.log('已注册用户:', users.map(u => ({ id: u.id, email: u.email })))
-
-    if (!email || !password) {
+    if (!loginIdentifier || !password) {
       return res.status(400).json({
         code: 400,
-        message: '邮箱和密码不能为空',
+        message: '邮箱/用户名和密码不能为空',
         data: null,
       })
     }
 
-    const user = users.find(u => u.email === email)
-    console.log('查找到的用户:', user ? { id: user.id, email: user.email } : '未找到')
-    
-    if (!user || !bcryptjs.compareSync(password, user.password)) {
-      console.log('登录失败: 用户不存在或密码错误')
+    // 查找用户（支持邮箱或用户名登录）
+    let user
+    if (loginIdentifier.includes('@')) {
+      user = await userModel.findByEmail(loginIdentifier)
+    } else {
+      user = await userModel.findByUsername(loginIdentifier)
+    }
+
+    if (!user) {
       return res.status(401).json({
         code: 401,
-        message: '邮箱或密码错误',
+        message: '邮箱/用户名或密码错误',
+        data: null,
+      })
+    }
+
+    // 验证密码
+    const isPasswordValid = await bcryptjs.compare(password, user.password)
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        code: 401,
+        message: '邮箱/用户名或密码错误',
         data: null,
       })
     }
@@ -123,7 +127,6 @@ async function login(req, res, next) {
       expiresIn: '7d',
     })
 
-    console.log('登录成功:', { id: user.id, email: user.email })
     res.json({
       code: 200,
       message: 'success',
@@ -131,12 +134,11 @@ async function login(req, res, next) {
         token,
         user: {
           id: user.id,
-          studentId: user.studentId,
           email: user.email,
           username: user.username,
           avatar: user.avatar,
           phone: user.phone,
-          createdAt: user.createdAt,
+          createdAt: user.created_at,
         },
       },
     })
@@ -148,7 +150,7 @@ async function login(req, res, next) {
 // 获取当前用户信息
 async function getMe(req, res, next) {
   try {
-    const user = users.find(u => u.id === req.user.id)
+    const user = await userModel.findById(req.user.id)
     if (!user) {
       return res.status(404).json({
         code: 404,
@@ -162,12 +164,11 @@ async function getMe(req, res, next) {
       message: 'success',
       data: {
         id: user.id,
-        studentId: user.studentId,
         email: user.email,
         username: user.username,
         avatar: user.avatar,
         phone: user.phone,
-        createdAt: user.createdAt,
+        createdAt: user.created_at,
       },
     })
   } catch (error) {
@@ -188,7 +189,8 @@ async function updatePassword(req, res, next) {
       })
     }
 
-    const user = users.find(u => u.id === req.user.id)
+    // 获取用户信息（包含密码）
+    const user = await userModel.findByEmail(req.user.email)
     if (!user) {
       return res.status(404).json({
         code: 404,
@@ -197,7 +199,9 @@ async function updatePassword(req, res, next) {
       })
     }
 
-    if (!bcryptjs.compareSync(oldPassword, user.password)) {
+    // 验证旧密码
+    const isOldPasswordValid = await bcryptjs.compare(oldPassword, user.password)
+    if (!isOldPasswordValid) {
       return res.status(401).json({
         code: 401,
         message: '旧密码错误',
@@ -214,7 +218,9 @@ async function updatePassword(req, res, next) {
       })
     }
 
-    user.password = bcryptjs.hashSync(newPassword, 10)
+    // 更新密码
+    const hashedPassword = await bcryptjs.hash(newPassword, 10)
+    await userModel.updatePassword(user.id, hashedPassword)
 
     res.json({
       code: 200,

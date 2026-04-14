@@ -1,59 +1,71 @@
-// 模拟数据库 - 实际项目应使用真实数据库
-const orders = []
-let nextOrderId = 1
-let nextOrderNumber = 20260330001
+const pool = require('../config/db')
+const orderModel = require('../models/orderModel')
+const productModel = require('../models/productModel')
 
-// 创建订单
+// 创建订单（使用事务）
 async function create(req, res, next) {
+  const connection = await pool.getConnection()
+
   try {
-    const { productId, shippingAddress } = req.body
+    const { productId } = req.body
 
-    if (!productId || !shippingAddress) {
+    if (!productId) {
       return res.status(400).json({
         code: 400,
-        message: '参数缺失',
+        message: '商品ID不能为空',
         data: null,
       })
     }
 
-    if (typeof shippingAddress !== 'string' || shippingAddress.length < 1 || shippingAddress.length > 200) {
-      return res.status(400).json({
-        code: 400,
-        message: '配送地址长度必须在 1-200 之间',
+    // 开启事务
+    await connection.beginTransaction()
+
+    // 1. 检查商品是否可购买（使用 FOR UPDATE 锁定行）
+    const product = await orderModel.checkProductAvailability(parseInt(productId), connection)
+
+    if (!product) {
+      await connection.rollback()
+      return res.status(404).json({
+        code: 404,
+        message: '商品不存在',
         data: null,
       })
     }
 
-    // 在实际项目中应从数据库查询产品
-    // 这里只是模拟
-    const products = require('./productsController')
-    // 为了简化，我们直接创建订单而不检查产品是否存在
+    if (product.status !== 'available') {
+      await connection.rollback()
+      return res.status(400).json({
+        code: 400,
+        message: '商品已售出或已下架',
+        data: null,
+      })
+    }
 
-    const order = {
-      id: nextOrderId++,
-      orderNumber: 'ORD' + (nextOrderNumber++),
-      productId: parseInt(productId),
-      product: {
-        id: productId,
-        title: '产品' + productId,
-        price: 999.99,
-        images: []
-      },
+    // 不能购买自己的商品
+    if (product.user_id === req.user.id) {
+      await connection.rollback()
+      return res.status(400).json({
+        code: 400,
+        message: '不能购买自己的商品',
+        data: null,
+      })
+    }
+
+    // 2. 创建订单
+    const orderId = await orderModel.create({
       buyerId: req.user.id,
-      sellerId: 2, // 假设卖家 ID 为 2
-      seller: {
-        id: 2,
-        username: '用户2',
-        avatar: null
-      },
-      price: 999.99,
-      status: 'pending',
-      shippingAddress,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
+      sellerId: product.user_id,
+      productId: parseInt(productId),
+    }, connection)
 
-    orders.push(order)
+    // 3. 更新商品状态为 sold
+    await productModel.updateStatus(parseInt(productId), 'sold', connection)
+
+    // 提交事务
+    await connection.commit()
+
+    // 获取订单详情
+    const order = await orderModel.findById(orderId)
 
     res.status(201).json({
       code: 201,
@@ -61,7 +73,11 @@ async function create(req, res, next) {
       data: order,
     })
   } catch (error) {
+    // 回滚事务
+    await connection.rollback()
     next(error)
+  } finally {
+    connection.release()
   }
 }
 
@@ -70,43 +86,29 @@ async function getList(req, res, next) {
   try {
     const {
       page = 1,
-      pageSize = 10,
+      pageSize = 20,
       status = null,
-      role = 'all'
+      role = null
     } = req.query
 
-    let filtered = [...orders]
-
-    // 根据角色筛选
-    if (role === 'buyer') {
-      filtered = filtered.filter(o => o.buyerId === req.user.id)
-    } else if (role === 'seller') {
-      filtered = filtered.filter(o => o.sellerId === req.user.id)
-    } else {
-      // all
-      filtered = filtered.filter(o => o.buyerId === req.user.id || o.sellerId === req.user.id)
+    const filters = {
+      userId: req.user.id,
+      role: role || undefined,
+      status: status || undefined,
+      page: Math.max(1, parseInt(page)),
+      pageSize: Math.max(1, Math.min(100, parseInt(pageSize))),
     }
 
-    // 状态筛选
-    if (status) {
-      filtered = filtered.filter(o => o.status === status)
-    }
-
-    // 分页
-    const pageNum = Math.max(1, parseInt(page))
-    const pageSizeNum = Math.max(1, parseInt(pageSize))
-    const start = (pageNum - 1) * pageSizeNum
-    const items = filtered.slice(start, start + pageSizeNum)
+    const { orders, total } = await orderModel.findAll(filters)
 
     res.json({
       code: 200,
       message: 'success',
       data: {
-        total: filtered.length,
-        page: pageNum,
-        pageSize: pageSizeNum,
-        totalPages: Math.ceil(filtered.length / pageSizeNum),
-        items,
+        orders,
+        total,
+        page: filters.page,
+        pageSize: filters.pageSize,
       },
     })
   } catch (error) {
@@ -118,7 +120,7 @@ async function getList(req, res, next) {
 async function getDetail(req, res, next) {
   try {
     const { id } = req.params
-    const order = orders.find(o => o.id === parseInt(id))
+    const order = await orderModel.findById(parseInt(id))
 
     if (!order) {
       return res.status(404).json({
@@ -129,7 +131,7 @@ async function getDetail(req, res, next) {
     }
 
     // 权限检查：只有买家或卖家可以查看订单
-    if (order.buyerId !== req.user.id && order.sellerId !== req.user.id) {
+    if (order.buyer.id !== req.user.id && order.seller.id !== req.user.id) {
       return res.status(403).json({
         code: 403,
         message: '无权限查看此订单',
@@ -151,9 +153,8 @@ async function getDetail(req, res, next) {
 async function confirm(req, res, next) {
   try {
     const { id } = req.params
-    const { trackingNumber } = req.body
 
-    const order = orders.find(o => o.id === parseInt(id))
+    const order = await orderModel.findById(parseInt(id))
     if (!order) {
       return res.status(404).json({
         code: 404,
@@ -163,7 +164,7 @@ async function confirm(req, res, next) {
     }
 
     // 权限检查：只有卖家可以确认订单
-    if (order.sellerId !== req.user.id) {
+    if (order.seller.id !== req.user.id) {
       return res.status(403).json({
         code: 403,
         message: '无权限确认此订单',
@@ -180,29 +181,27 @@ async function confirm(req, res, next) {
       })
     }
 
-    order.status = 'shipped'
-    if (trackingNumber) {
-      order.trackingNumber = trackingNumber
-    }
-    order.updatedAt = new Date()
+    await orderModel.updateStatus(parseInt(id), 'confirmed')
+    const updatedOrder = await orderModel.findById(parseInt(id))
 
     res.json({
       code: 200,
       message: 'success',
-      data: order,
+      data: updatedOrder,
     })
   } catch (error) {
     next(error)
   }
 }
 
-// 取消订单
+// 取消订单（使用事务恢复商品状态）
 async function cancel(req, res, next) {
+  const connection = await pool.getConnection()
+
   try {
     const { id } = req.params
-    const { reason } = req.body
 
-    const order = orders.find(o => o.id === parseInt(id))
+    const order = await orderModel.findById(parseInt(id))
     if (!order) {
       return res.status(404).json({
         code: 404,
@@ -211,8 +210,8 @@ async function cancel(req, res, next) {
       })
     }
 
-    // 权限检查：买家或卖家都可以取消，但有条件
-    if (order.buyerId !== req.user.id && order.sellerId !== req.user.id) {
+    // 权限检查：买家或卖家都可以取消
+    if (order.buyer.id !== req.user.id && order.seller.id !== req.user.id) {
       return res.status(403).json({
         code: 403,
         message: '无权限取消此订单',
@@ -220,28 +219,40 @@ async function cancel(req, res, next) {
       })
     }
 
-    // 状态检查：不能取消已完成的订单
-    if (order.status === 'completed' || order.status === 'cancelled') {
+    // 状态检查：只能取消 pending 状态的订单
+    if (order.status !== 'pending') {
       return res.status(400).json({
         code: 400,
-        message: '订单不能取消',
+        message: '订单状态不允许取消',
         data: null,
       })
     }
 
-    order.status = 'cancelled'
-    if (reason) {
-      order.cancelReason = reason
-    }
-    order.updatedAt = new Date()
+    // 开启事务
+    await connection.beginTransaction()
+
+    // 1. 更新订单状态为 cancelled
+    await orderModel.updateStatus(parseInt(id), 'cancelled', connection)
+
+    // 2. 恢复商品状态为 available
+    await productModel.updateStatus(order.product.id, 'available', connection)
+
+    // 提交事务
+    await connection.commit()
+
+    const updatedOrder = await orderModel.findById(parseInt(id))
 
     res.json({
       code: 200,
       message: 'success',
-      data: order,
+      data: updatedOrder,
     })
   } catch (error) {
+    // 回滚事务
+    await connection.rollback()
     next(error)
+  } finally {
+    connection.release()
   }
 }
 

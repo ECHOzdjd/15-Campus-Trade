@@ -42,7 +42,8 @@ async function uploadImage(req, res, next) {
     }
 
     // 返回文件 URL
-    const url = `http://localhost:3000/uploads/${req.file.filename}`
+    const port = process.env.PORT || 3001
+    const url = `http://localhost:${port}/uploads/${req.file.filename}`
 
     res.status(201).json({
       code: 201,

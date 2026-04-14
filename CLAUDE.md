@@ -42,6 +42,10 @@ frontend/
 └── src/
     ├── main.js            # 应用入口，注册插件
     ├── App.vue            # 根组件
+    ├── styles/            # 样式系统
+    │   ├── linear-theme.css      # Linear 风格 CSS 变量
+    │   ├── element-override.scss # Element Plus 主题覆盖
+    │   └── global.css            # 全局样式
     ├── api/               # 所有接口请求定义
     │   └── index.js       # 按模块导出（auth、products、orders、upload）
     ├── router/            # 路由配置
@@ -52,6 +56,9 @@ frontend/
     │   └── order.js       # 订单列表、详情
     ├── views/             # 页面级组件（与路由一一对应）
     ├── components/        # 可复用子组件
+    │   ├── AppHeader.vue         # 全局导航栏
+    │   ├── ProductCard.vue       # 商品卡片
+    │   └── ImageUploader.vue     # 图片上传
     └── utils/
         └── request.js     # Axios 实例封装 + 拦截器
 ```
@@ -85,6 +92,30 @@ backend/
 - **状态管理**：跨组件共享状态放 Pinia store，组件内部状态用 `ref/reactive`
 - **路由**：需要登录的页面必须在路由 meta 中配置 `requiresAuth: true`，由导航守卫统一处理
 
+#### 命名规范
+
+- **组件文件**：PascalCase（如 `ProductCard.vue`）
+- **普通文件**：kebab-case（如 `linear-theme.css`）
+- **变量/函数**：camelCase（如 `fetchProducts`）
+
+#### 注释规范
+
+- 组件顶部添加功能说明注释
+- 复杂逻辑添加行内注释
+- API 调用添加用途注释
+
+#### 样式规范
+
+- 优先使用 CSS 变量（`var(--bg-surface)`）
+- 使用 scoped 样式避免污染
+- 避免深层嵌套（最多 3 层）
+
+#### 状态管理规范
+
+- 跨页面共享状态使用 Pinia store
+- 页面内部状态使用 ref/reactive
+- 避免在组件中直接修改 store，使用 actions
+
 ### 后端
 
 - **响应格式**：所有接口统一返回以下 JSON 格式：
@@ -102,6 +133,91 @@ backend/
 - Base URL：`http://localhost:3000/api`
 - 认证：使用 Bearer Token（JWT），放在请求头 `Authorization: Bearer <token>`
 - 详细接口文档：见 `docs/api.md`
+
+### 接口响应格式
+
+所有接口统一返回以下 JSON 格式：
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {}
+}
+```
+
+### 常用接口数据格式
+
+#### 商品列表响应
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "products": [
+      {
+        "id": 1,
+        "title": "二手自行车",
+        "price": 200,
+        "category": "交通工具",
+        "status": "available",
+        "images": ["url1", "url2"],
+        "seller": {
+          "id": 1,
+          "username": "张三",
+          "avatar": "..."
+        },
+        "createdAt": "2026-04-13T10:00:00Z"
+      }
+    ],
+    "total": 100,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+#### 商品详情响应
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": 1,
+    "title": "二手自行车",
+    "price": 200,
+    "description": "九成新自行车，骑行流畅",
+    "images": ["url1", "url2"],
+    "category": "交通工具",
+    "status": "available",
+    "seller": {
+      "id": 1,
+      "username": "张三",
+      "avatar": "..."
+    },
+    "createdAt": "2026-04-13T10:00:00Z",
+    "updatedAt": "2026-04-13T10:00:00Z"
+  }
+}
+```
+
+#### 用户信息响应
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": 1,
+    "username": "张三",
+    "email": "zhangsan@example.com",
+    "avatar": "...",
+    "createdAt": "2026-01-01T00:00:00Z"
+  }
+}
+```
 
 ---
 

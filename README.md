@@ -1,4 +1,15 @@
 # 校园二手交易平台（Campus Trade）
+
+[![Backend Coverage](https://codecov.io/gh/your-org/campus-trade/branch/main/graph/badge.svg?flag=backend)](https://codecov.io/gh/your-org/campus-trade?flag=backend)
+[![Frontend Coverage](https://codecov.io/gh/your-org/campus-trade/branch/main/graph/badge.svg?flag=frontend)](https://codecov.io/gh/your-org/campus-trade?flag=frontend)
+
+## 测试覆盖率
+
+| 模块 | 测试数量 | 覆盖率 |
+|------|---------|--------|
+| 后端 | 32 个测试 (单元测试 20 + API 测试 12) | ~49% |
+| 前端 | 26 个测试 (组件测试 18 + Mock API 测试 8) | 组件覆盖 |
+
 ## 团队成员
 
 | 姓名   | 学号       | 主要职责 | 阶段贡献 |

@@ -50,7 +50,7 @@ jobs:
       - name: Initialize Database
         working-directory: backend
         run: |
-          mysql -h 127.0.0.1 -u root -ptest_password campus_trade_test < src/scripts/init-db.sql
+          sed 's/USE campus_trade;/USE campus_trade_test;/g' src/scripts/init-db.sql | mysql -h 127.0.0.1 -u root -ptest_password campus_trade_test
 
       - name: Run ESLint
         working-directory: backend

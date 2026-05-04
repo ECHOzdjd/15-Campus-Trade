@@ -1,12 +1,12 @@
 const request = require('supertest')
-const app = require('../../src/app')
-const pool = require('../../src/config/db')
+const app = require('../../app')
+const pool = require('../../config/db')
 
 // 清理测试数据
 afterAll(async () => {
   // 清理测试创建的用户和商品
-  await pool.query("DELETE FROM products WHERE title LIKE 'Test%API%'")
-  await pool.query("DELETE FROM users WHERE email LIKE 'test%api%'")
+  await pool.query('DELETE FROM products WHERE title LIKE \'Test%API%\'')
+  await pool.query('DELETE FROM users WHERE email LIKE \'test%api%\'')
   await pool.end()
 })
 

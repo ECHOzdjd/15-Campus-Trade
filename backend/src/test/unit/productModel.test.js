@@ -1,11 +1,11 @@
 // Mock the database pool before requiring productModel
-jest.mock('../../src/config/db', () => {
+jest.mock('../../config/db', () => {
   const mockQuery = jest.fn()
   return { query: mockQuery }
 })
 
-const pool = require('../../src/config/db')
-const productModel = require('../../src/models/productModel')
+const pool = require('../../config/db')
+const productModel = require('../../models/productModel')
 
 describe('productModel', () => {
   beforeEach(() => {

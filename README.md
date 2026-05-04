@@ -1,7 +1,8 @@
 # 校园二手交易平台（Campus Trade）
 
-[![Backend Coverage](https://codecov.io/gh/your-org/campus-trade/branch/main/graph/badge.svg?flag=backend)](https://codecov.io/gh/your-org/campus-trade?flag=backend)
-[![Frontend Coverage](https://codecov.io/gh/your-org/campus-trade/branch/main/graph/badge.svg?flag=frontend)](https://codecov.io/gh/your-org/campus-trade?flag=frontend)
+[![CI](https://github.com/ECHOzdjd/15-Campus-Trade/actions/workflows/ci.yml/badge.svg)](https://github.com/ECHOzdjd/15-Campus-Trade/actions/workflows/ci.yml)
+[![Backend Coverage](https://codecov.io/gh/ECHOzdjd/15-Campus-Trade/branch/main/graph/badge.svg?flag=backend)](https://codecov.io/gh/ECHOzdjd/15-Campus-Trade?flag=backend)
+[![Frontend Coverage](https://codecov.io/gh/ECHOzdjd/15-Campus-Trade/branch/main/graph/badge.svg?flag=frontend)](https://codecov.io/gh/ECHOzdjd/15-Campus-Trade?flag=frontend)
 
 ## 测试覆盖率
 

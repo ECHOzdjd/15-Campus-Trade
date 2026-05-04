@@ -1,11 +1,11 @@
 // Mock the database pool before requiring userModel
-jest.mock('../../src/config/db', () => {
+jest.mock('../../config/db', () => {
   const mockQuery = jest.fn()
   return { query: mockQuery }
 })
 
-const pool = require('../../src/config/db')
-const userModel = require('../../src/models/userModel')
+const pool = require('../../config/db')
+const userModel = require('../../models/userModel')
 
 describe('userModel', () => {
   beforeEach(() => {

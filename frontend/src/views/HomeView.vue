@@ -78,14 +78,13 @@
 
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { products } from '../api/index.js'
 import { ElMessage } from 'element-plus'
 import AppHeader from '../components/AppHeader.vue'
 import ProductCard from '../components/ProductCard.vue'
 
 const route = useRoute()
-const router = useRouter()
 
 const loading = ref(false)
 const productList = ref([])

@@ -53,7 +53,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Edit, Delete } from '@element-plus/icons-vue'
 

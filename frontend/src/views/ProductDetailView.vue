@@ -109,6 +109,7 @@ import { useUserStore } from '../stores/user.js'
 import { products, orders } from '../api/index.js'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, Delete, ShoppingCart } from '@element-plus/icons-vue'
+import { sanitizeUrl } from '../utils/xssProtection.js'
 import AppHeader from '../components/AppHeader.vue'
 
 const route = useRoute()
@@ -131,7 +132,9 @@ const fetchProductDetail = async () => {
   try {
     const res = await products.getDetail(route.params.id)
     product.value = res.data
-    currentImage.value = res.data.images?.[0] || ''
+    // 验证图片 URL 安全性
+    currentImage.value = product.value.images?.[0] ? 
+      sanitizeUrl(product.value.images[0]) : ''
   } catch (error) {
     console.error('获取商品详情失败:', error)
     ElMessage.error(error.message || '获取商品详情失败')

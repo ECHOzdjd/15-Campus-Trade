@@ -28,6 +28,7 @@
 import { ref, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import { sanitizeUrl } from '../utils/xssProtection.js'
 
 const props = defineProps({
   modelValue: {
@@ -69,12 +70,16 @@ const fileList = ref([])
 // 初始化文件列表
 watch(() => props.modelValue, (newVal) => {
   if (newVal && newVal.length > 0) {
-    fileList.value = newVal.map((url, index) => ({
-      uid: Date.now() + index,
-      name: `image-${index}`,
-      status: 'success',
-      url: url
-    }))
+    fileList.value = newVal.map((url, index) => {
+      // 安全检查：验证 URL
+      const safeUrl = sanitizeUrl(url)
+      return {
+        uid: Date.now() + index,
+        name: `image-${index}`,
+        status: 'success',
+        url: safeUrl
+      }
+    })
   } else {
     fileList.value = []
   }
@@ -98,6 +103,7 @@ const beforeUpload = (file) => {
 
   return true
 }
+
 
 // 上传成功
 const handleSuccess = (response, file, fileList) => {

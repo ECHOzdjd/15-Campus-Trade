@@ -89,6 +89,10 @@ async function login(req, res, next) {
     const loginIdentifier = email || username
 
     if (!loginIdentifier || !password) {
+      // 记录登录失败尝试
+      if (res.recordLoginFailure) {
+        res.recordLoginFailure()
+      }
       return res.status(400).json({
         code: 400,
         message: '邮箱/用户名和密码不能为空',
@@ -105,6 +109,10 @@ async function login(req, res, next) {
     }
 
     if (!user) {
+      // 记录登录失败尝试
+      if (res.recordLoginFailure) {
+        res.recordLoginFailure()
+      }
       return res.status(401).json({
         code: 401,
         message: '邮箱/用户名或密码错误',
@@ -115,11 +123,20 @@ async function login(req, res, next) {
     // 验证密码
     const isPasswordValid = await bcryptjs.compare(password, user.password)
     if (!isPasswordValid) {
+      // 记录登录失败尝试
+      if (res.recordLoginFailure) {
+        res.recordLoginFailure()
+      }
       return res.status(401).json({
         code: 401,
         message: '邮箱/用户名或密码错误',
         data: null,
       })
+    }
+
+    // 登录成功，清除该 IP 的失败尝试记录
+    if (res.clearLoginAttempts) {
+      res.clearLoginAttempts()
     }
 
     // 签发 Token

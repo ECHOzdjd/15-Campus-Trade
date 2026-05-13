@@ -1,0 +1,1104 @@
+openapi: 3.0.0
+info:
+  title: 校园二手交易平台 API
+  description: 为校园用户提供二手物品买卖、交流的 RESTful API 服务
+  version: 1.0.0
+  contact:
+    name: Campus Trade Team
+    email: support@campustrade.com
+
+servers:
+  - url: http://localhost:3000/api
+    description: 本地开发环境
+  - url: https://api.campustrade.com/api
+    description: 生产环境
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "使用 JWT Token 进行认证（登录后获取）"
+
+  schemas:
+    # 通用响应格式
+    SuccessResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+          description: "状态码：200 表示成功"
+        message:
+          type: string
+          example: "success"
+          description: "状态信息"
+        data:
+          type: object
+          description: "返回数据，根据具体接口而定"
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 400
+          description: "错误状态码"
+        message:
+          type: string
+          example: "错误描述"
+          description: "错误信息"
+        data:
+          type: "null"
+          example: null
+
+    # 用户相关
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+          description: "用户 ID"
+        studentId:
+          type: string
+          example: "2312190301"
+          description: "学号"
+        email:
+          type: string
+          format: email
+          example: "user@campustrade.com"
+          description: "邮箱"
+        username:
+          type: string
+          example: "张三"
+          description: "用户名"
+        avatar:
+          type: string
+          format: uri
+          example: "http://localhost:3000/uploads/avatar_1.jpg"
+          description: "头像 URL"
+        phone:
+          type: string
+          example: "13800138000"
+          description: "电话号码"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-03-01T10:00:00Z"
+          description: "创建时间"
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: "<JWT_TOKEN>"
+          description: "JWT 令牌"
+        user:
+          $ref: "#/components/schemas/User"
+
+    # 产品相关
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+          description: "产品 ID"
+        title:
+          type: string
+          example: "全新苹果 MacBook Pro"
+          description: "产品标题"
+        description:
+          type: string
+          example: "14寸屏幕，M2 芯片，1TB 存储..."
+          description: "产品描述"
+        price:
+          type: number
+          format: float
+          example: 5999.99
+          description: "价格"
+        category:
+          type: string
+          enum: [electronics, books, furniture, clothing, other]
+          example: "electronics"
+          description: "分类"
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          example: ["http://localhost:3000/uploads/product_1.jpg"]
+          description: "产品图片 URL 列表"
+        status:
+          type: string
+          enum: [selling, sold, removed]
+          example: "selling"
+          description: "产品状态：selling(出售中)、sold(已售出)、removed(已下架)"
+        sellerId:
+          type: integer
+          example: 1
+          description: "卖家 ID"
+        seller:
+          type: object
+          properties:
+            id:
+              type: integer
+            username:
+              type: string
+            avatar:
+              type: string
+          description: "卖家信息"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-03-01T10:00:00Z"
+          description: "创建时间"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-03-02T15:30:00Z"
+          description: "更新时间"
+
+    ProductCreateRequest:
+      type: object
+      required:
+        - title
+        - price
+        - category
+      properties:
+        title:
+          type: string
+          example: "全新苹果 MacBook Pro"
+          description: "产品标题"
+        description:
+          type: string
+          example: "14寸屏幕，M2 芯片，1TB 存储..."
+          description: "产品描述"
+        price:
+          type: number
+          format: float
+          example: 5999.99
+          description: "价格"
+        category:
+          type: string
+          enum: [electronics, books, furniture, clothing, other]
+          example: "electronics"
+          description: "分类"
+        images:
+          type: array
+          items:
+            type: string
+          example: ["image1.jpg", "image2.jpg"]
+          description: "产品图片 URL 列表"
+
+    # 订单相关
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+          description: "订单 ID"
+        orderNumber:
+          type: string
+          example: "ORD20260301001"
+          description: "订单号"
+        productId:
+          type: integer
+          example: 1
+          description: "产品 ID"
+        product:
+          $ref: "#/components/schemas/Product"
+        buyerId:
+          type: integer
+          example: 2
+          description: "买家 ID"
+        seller:
+          $ref: "#/components/schemas/User"
+        sellerId:
+          type: integer
+          example: 1
+          description: "卖家 ID"
+        price:
+          type: number
+          format: float
+          example: 5999.99
+          description: "成交价格"
+        status:
+          type: string
+          enum: [pending, shipped, delivered, completed, cancelled]
+          example: "pending"
+          description: "订单状态：pending(待确认)、shipped(已发货)、delivered(已送达)、completed(已完成)、cancelled(已取消)"
+        shippingAddress:
+          type: string
+          example: "石家庄市长安区123号宿舍"
+          description: "配送地址"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-03-01T10:00:00Z"
+          description: "创建时间"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-03-02T15:30:00Z"
+          description: "更新时间"
+
+    OrderCreateRequest:
+      type: object
+      required:
+        - productId
+        - shippingAddress
+      properties:
+        productId:
+          type: integer
+          example: 1
+          description: "产品 ID"
+        shippingAddress:
+          type: string
+          example: "石家庄市长安区123号宿舍"
+          description: "配送地址"
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 100
+          description: "总记录数"
+        page:
+          type: integer
+          example: 1
+          description: "当前页码"
+        pageSize:
+          type: integer
+          example: 10
+          description: "每页记录数"
+        totalPages:
+          type: integer
+          example: 10
+          description: "总页数"
+        items:
+          type: array
+          description: "数据列表"
+
+paths:
+  # ===== 认证接口 =====
+  /auth/register:
+    post:
+      summary: 用户注册
+      tags:
+        - 认证 (Authentication)
+      description: "创建新的用户账号"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studentId
+                - email
+                - password
+                - username
+              properties:
+                studentId:
+                  type: string
+                  example: "2312190301"
+                  description: "学号"
+                email:
+                  type: string
+                  format: email
+                  example: "user@campustrade.com"
+                  description: "邮箱"
+                password:
+                  type: string
+                  format: password
+                  example: "Password123!"
+                  description: "密码（至少8位，包含大小写和数字）"
+                username:
+                  type: string
+                  example: "张三"
+                  description: "用户名"
+      responses:
+        "201":
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 201
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: 请求参数错误或用户已存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      summary: 用户登录
+      tags:
+        - 认证 (Authentication)
+      description: "使用学号/邮箱和密码进行登录，返回 JWT Token"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@campustrade.com"
+                  description: "邮箱"
+                password:
+                  type: string
+                  format: password
+                  example: "Password123!"
+                  description: "密码"
+      responses:
+        "200":
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: 邮箱或密码错误
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      summary: 获取当前用户信息
+      tags:
+        - 认证 (Authentication)
+      description: "获取当前登录用户的详细信息"
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: "#/components/schemas/User"
+        "401":
+          description: 未授权，需要提供有效的 Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/password:
+    put:
+      summary: 修改密码
+      tags:
+        - 认证 (Authentication)
+      description: "修改当前用户的密码"
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - oldPassword
+                - newPassword
+              properties:
+                oldPassword:
+                  type: string
+                  format: password
+                  example: "OldPassword123!"
+                  description: "旧密码"
+                newPassword:
+                  type: string
+                  format: password
+                  example: "NewPassword123!"
+                  description: "新密码"
+      responses:
+        "200":
+          description: 密码修改成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    type: "null"
+        "401":
+          description: 旧密码错误
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ===== 产品接口 =====
+  /products:
+    get:
+      summary: 获取产品列表
+      tags:
+        - 产品 (Products)
+      description: "分页获取产品列表，支持搜索、筛选和排序"
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: "页码（从 1 开始）"
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: "每页记录数"
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: "搜索关键词（标题和描述）"
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [electronics, books, furniture, clothing, other]
+          description: "产品分类"
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+          description: "最低价格"
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+          description: "最高价格"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [selling, sold, removed]
+          description: "产品状态"
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [createdAt, price]
+            default: "createdAt"
+          description: "排序字段"
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: "desc"
+          description: "排序顺序"
+      responses:
+        "200":
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    allOf:
+                      - $ref: "#/components/schemas/Pagination"
+                      - type: object
+                        properties:
+                          items:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Product"
+
+    post:
+      summary: 创建产品
+      tags:
+        - 产品 (Products)
+      description: "创建新的产品（只有登录用户才能创建）"
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductCreateRequest"
+      responses:
+        "201":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 201
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: "#/components/schemas/Product"
+        "400":
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /products/{id}:
+    get:
+      summary: 获取产品详情
+      tags:
+        - 产品 (Products)
+      description: "获取单个产品的详细信息"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "产品 ID"
+      responses:
+        "200":
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: "#/components/schemas/Product"
+        "404":
+          description: 产品不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      summary: 更新产品信息
+      tags:
+        - 产品 (Products)
+      description: "更新产品信息（只有卖家才能更新）"
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "产品 ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductCreateRequest"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: "#/components/schemas/Product"
+        "403":
+          description: 无权限更新此产品
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 产品不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      summary: 删除产品
+      tags:
+        - 产品 (Products)
+      description: "删除产品（只有卖家才能删除）"
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "产品 ID"
+      responses:
+        "200":
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    type: "null"
+        "403":
+          description: 无权限删除此产品
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 产品不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /products/my:
+    get:
+      summary: 获取我的产品列表
+      tags:
+        - 产品 (Products)
+      description: "获取当前用户发布的所有产品"
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: "页码"
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: "每页记录数"
+      responses:
+        "200":
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    allOf:
+                      - $ref: "#/components/schemas/Pagination"
+                      - type: object
+                        properties:
+                          items:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Product"
+
+  # ===== 订单接口 =====
+  /orders:
+    post:
+      summary: 创建订单
+      tags:
+        - 订单 (Orders)
+      description: "创建新的订单（买家购买产品）"
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderCreateRequest"
+      responses:
+        "201":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 201
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: "#/components/schemas/Order"
+        "400":
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: 产品不可用或已被购买
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    get:
+      summary: 获取订单列表
+      tags:
+        - 订单 (Orders)
+      description: "获取当前用户的订单列表（买家和卖家）"
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: "页码"
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: "每页记录数"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, shipped, delivered, completed, cancelled]
+          description: "订单状态"
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [buyer, seller, all]
+            default: "all"
+          description: "角色（买家/卖家/全部）"
+      responses:
+        "200":
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    allOf:
+                      - $ref: "#/components/schemas/Pagination"
+                      - type: object
+                        properties:
+                          items:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Order"
+
+  /orders/{id}:
+    get:
+      summary: 获取订单详情
+      tags:
+        - 订单 (Orders)
+      description: "获取单个订单的详细信息"
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "订单 ID"
+      responses:
+        "200":
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: "#/components/schemas/Order"
+        "404":
+          description: 订单不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /orders/{id}/confirm:
+    put:
+      summary: 确认订单
+      tags:
+        - 订单 (Orders)
+      description: "卖家确认订单（标记为已发货）"
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "订单 ID"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                trackingNumber:
+                  type: string
+                  example: "SF123456789012"
+                  description: "快递单号（可选）"
+      responses:
+        "200":
+          description: 确认成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: "#/components/schemas/Order"
+        "403":
+          description: 无权限确认此订单
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 订单不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /orders/{id}/cancel:
+    put:
+      summary: 取消订单
+      tags:
+        - 订单 (Orders)
+      description: "取消订单（买家或卖家均可取消，但需满足条件）"
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "订单 ID"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  example: "不需要了"
+                  description: "取消原因"
+      responses:
+        "200":
+          description: 取消成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: "#/components/schemas/Order"
+        "403":
+          description: 无权限取消此订单或订单不能取消
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 订单不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ===== 文件上传接口 =====
+  /upload/image:
+    post:
+      summary: 上传产品图片
+      tags:
+        - 文件上传 (Upload)
+      description: "上传产品图片（只有登录用户才能上传）"
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: "图片文件"
+      responses:
+        "201":
+          description: 上传成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 201
+                  message:
+                    type: string
+                    example: "success"
+                  data:
+                    type: object
+                    properties:
+                      url:
+                        type: string
+                        format: uri
+                        example: "http://localhost:3000/uploads/product_1709288400000.jpg"
+                        description: "上传后的图片 URL"
+                      filename:
+                        type: string
+                        example: "product_1709288400000.jpg"
+                        description: "文件名"
+        "400":
+          description: 文件格式错误或文件过大
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+tags:
+  - name: 认证 (Authentication)
+    description: "用户注册、登录、密码修改等认证相关接口"
+  - name: 产品 (Products)
+    description: "产品查询、创建、更新、删除等操作"
+  - name: 订单 (Orders)
+    description: "订单创建、查询、状态更新等操作"
+  - name: 文件上传 (Upload)
+    description: "产品图片上传等文件操作"

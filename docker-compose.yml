@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # MySQL 数据库服务
+  mysql:
+    image: mysql:8.0
+    container_name: campus-trade-mysql
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: campus_trade
+      MYSQL_USER: campustrade
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3307:3306"  # 改用 3307 端口，避免与本地 MySQL 冲突
+    volumes:
+      # 数据持久化
+      - ./mysql-data:/var/lib/mysql
+      # 初始化脚本（按字母顺序执行）
+      - ./backend/src/scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql
+      - ./backend/src/scripts/seed-data.sql:/docker-entrypoint-initdb.d/02-seed-data.sql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - campus-trade-network
+
+  # 后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campus-trade-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      # 数据库配置
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: campustrade
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: campus_trade
+      # JWT 配置
+      JWT_SECRET: ${JWT_SECRET}
+      # 服务端口
+      PORT: 3001
+      # Node 环境
+      NODE_ENV: production
+    volumes:
+      # 挂载 uploads 目录（文件上传）
+      - ./backend/uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - campus-trade-network
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: campus-trade-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - campus-trade-network
+
+networks:
+  campus-trade-network:
+    driver: bridge
+
+volumes:
+  mysql-data:

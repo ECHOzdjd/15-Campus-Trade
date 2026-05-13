@@ -1,0 +1,109 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  gitleaks:
+    name: Gitleaks Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependency-check:
+    name: Dependency Security Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install
+
+      - name: Check backend dependencies
+        working-directory: backend
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Check frontend dependencies
+        working-directory: frontend
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Backend lint
+        working-directory: backend
+        run: |
+          npm install
+          npm run lint
+        continue-on-error: true
+
+      - name: Frontend lint
+        working-directory: frontend
+        run: |
+          npm install
+          npm run lint
+        continue-on-error: true
+
+  env-check:
+    name: Environment Configuration Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check .env files not committed
+        run: |
+          if [ -f backend/.env ]; then
+            echo "❌ ERROR: backend/.env file should not be committed"
+            exit 1
+          fi
+          if [ -f frontend/.env ]; then
+            echo "❌ ERROR: frontend/.env file should not be committed"
+            exit 1
+          fi
+          echo "✅ PASS: No .env files found in repository"
+
+      - name: Check .env.example files exist
+        run: |
+          if [ ! -f backend/.env.example ]; then
+            echo "❌ ERROR: backend/.env.example not found"
+            exit 1
+          fi
+          if [ ! -f frontend/.env.example ]; then
+            echo "❌ ERROR: frontend/.env.example not found"
+            exit 1
+          fi
+          echo "✅ PASS: All .env.example files found"

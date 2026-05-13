@@ -18,6 +18,8 @@ pnpm-debug.log*
 .env.test.local
 .env.production.local
 .env.*
+!.env.example
+!**/.env.example
 
 # ===========================
 # 构建产物
@@ -47,6 +49,7 @@ public/uploads/
 # ===========================
 *.sqlite
 *.db
+mysql-data/
 
 # ===========================
 # 操作系统生成文件
@@ -80,3 +83,4 @@ coverage/
 # ===========================
 tmp/
 temp/
+.git-backup/

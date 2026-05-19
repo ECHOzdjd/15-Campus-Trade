@@ -1,4 +1,16 @@
 const pool = require('../config/db')
+const { normalizeText } = require('../utils/textEncoding')
+
+function normalizeUser(user) {
+  if (!user) {
+    return null
+  }
+
+  return {
+    ...user,
+    username: normalizeText(user.username)
+  }
+}
 
 /**
  * 用户数据模型
@@ -15,7 +27,7 @@ async function findByEmail(email) {
     'SELECT id, username, email, password, phone, avatar, created_at, updated_at FROM users WHERE email = ?',
     [email]
   )
-  return rows[0] || null
+  return normalizeUser(rows[0])
 }
 
 /**
@@ -28,7 +40,7 @@ async function findByUsername(username) {
     'SELECT id, username, email, password, phone, avatar, created_at, updated_at FROM users WHERE username = ?',
     [username]
   )
-  return rows[0] || null
+  return normalizeUser(rows[0])
 }
 
 /**
@@ -41,7 +53,7 @@ async function findById(id) {
     'SELECT id, username, email, phone, avatar, created_at, updated_at FROM users WHERE id = ?',
     [id]
   )
-  return rows[0] || null
+  return normalizeUser(rows[0])
 }
 
 /**

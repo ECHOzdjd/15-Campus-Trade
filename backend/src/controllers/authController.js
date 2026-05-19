@@ -2,6 +2,8 @@ const jwt = require('jsonwebtoken')
 const bcryptjs = require('bcryptjs')
 const userModel = require('../models/userModel')
 
+const MIN_PASSWORD_LENGTH = 4
+
 // 注册
 async function register(req, res, next) {
   try {
@@ -16,11 +18,11 @@ async function register(req, res, next) {
       })
     }
 
-    // 密码强度验证
-    if (password.length < 8 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+    // 密码长度验证
+    if (password.length < MIN_PASSWORD_LENGTH) {
       return res.status(400).json({
         code: 400,
-        message: '密码至少 8 位，需包含大小写字母和数字',
+        message: `密码至少 ${MIN_PASSWORD_LENGTH} 位`,
         data: null,
       })
     }
@@ -226,11 +228,11 @@ async function updatePassword(req, res, next) {
       })
     }
 
-    // 验证新密码强度
-    if (newPassword.length < 8 || !/[a-z]/.test(newPassword) || !/[A-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+    // 验证新密码长度
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
       return res.status(400).json({
         code: 400,
-        message: '新密码至少 8 位，需包含大小写字母和数字',
+        message: `新密码至少 ${MIN_PASSWORD_LENGTH} 位`,
         data: null,
       })
     }

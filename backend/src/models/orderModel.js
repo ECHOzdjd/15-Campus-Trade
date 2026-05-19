@@ -1,4 +1,9 @@
 const pool = require('../config/db')
+const { normalizeText } = require('../utils/textEncoding')
+
+function parseImages(images) {
+  return typeof images === 'string' ? JSON.parse(images) : (images || [])
+}
 
 /**
  * 订单数据模型
@@ -101,18 +106,18 @@ async function findAll(filters = {}) {
     status: row.status,
     product: {
       id: row.product_id,
-      title: row.product_title,
+      title: normalizeText(row.product_title),
       price: parseFloat(row.product_price),
-      images: typeof row.product_images === 'string' ? JSON.parse(row.product_images) : (row.product_images || [])
+      images: parseImages(row.product_images)
     },
     buyer: {
       id: row.buyer_id,
-      username: row.buyer_username,
+      username: normalizeText(row.buyer_username),
       avatar: row.buyer_avatar
     },
     seller: {
       id: row.seller_id,
-      username: row.seller_username,
+      username: normalizeText(row.seller_username),
       avatar: row.seller_avatar
     },
     createdAt: row.created_at,
@@ -156,23 +161,23 @@ async function findById(id) {
     status: row.status,
     product: {
       id: row.product_id,
-      title: row.product_title,
-      description: row.product_description,
+      title: normalizeText(row.product_title),
+      description: normalizeText(row.product_description),
       price: parseFloat(row.product_price),
-      category: row.product_category,
+      category: normalizeText(row.product_category),
       condition: row.product_condition,
-      images: typeof row.product_images === 'string' ? JSON.parse(row.product_images) : (row.product_images || [])
+      images: parseImages(row.product_images)
     },
     buyer: {
       id: row.buyer_id,
-      username: row.buyer_username,
+      username: normalizeText(row.buyer_username),
       email: row.buyer_email,
       phone: row.buyer_phone,
       avatar: row.buyer_avatar
     },
     seller: {
       id: row.seller_id,
-      username: row.seller_username,
+      username: normalizeText(row.seller_username),
       email: row.seller_email,
       phone: row.seller_phone,
       avatar: row.seller_avatar

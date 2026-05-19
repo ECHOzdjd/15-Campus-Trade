@@ -2,9 +2,9 @@ name: Docker Images
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop-clean]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop-clean]
   workflow_dispatch:
 
 permissions:
@@ -51,6 +51,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set image repository
+        id: image
+        shell: bash
+        run: echo "repository=ghcr.io/${GITHUB_REPOSITORY,,}/${{ matrix.service }}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push image
         if: github.event_name == 'push'
         uses: docker/build-push-action@v6
@@ -59,7 +64,7 @@ jobs:
           target: production
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/${{ matrix.service }}:latest
-            ghcr.io/${{ github.repository }}/${{ matrix.service }}:${{ github.sha }}
+            ${{ steps.image.outputs.repository }}:latest
+            ${{ steps.image.outputs.repository }}:${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}

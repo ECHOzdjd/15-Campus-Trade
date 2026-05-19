@@ -9,11 +9,11 @@
             <!-- 左侧：图片展示 -->
             <div class="image-section">
               <div class="main-image">
-                <img :src="currentImage" :alt="product.title" />
+                <img :src="currentImage || defaultImage" :alt="product.title" />
               </div>
-              <div v-if="product.images && product.images.length > 1" class="thumbnail-list">
+              <div v-if="displayImages.length > 1" class="thumbnail-list">
                 <div
-                  v-for="(image, index) in product.images"
+                  v-for="(image, index) in displayImages"
                   :key="index"
                   class="thumbnail-item"
                   :class="{ active: currentImage === image }"
@@ -109,7 +109,7 @@ import { useUserStore } from '../stores/user.js'
 import { products, orders } from '../api/index.js'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, Delete, ShoppingCart } from '@element-plus/icons-vue'
-import { sanitizeUrl } from '../utils/xssProtection.js'
+import { resolveAssetUrl } from '../utils/url.js'
 import AppHeader from '../components/AppHeader.vue'
 
 const route = useRoute()
@@ -119,6 +119,13 @@ const userStore = useUserStore()
 const loading = ref(false)
 const product = ref(null)
 const currentImage = ref('')
+const defaultImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect width="400" height="400" fill="%23191a1b"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="48" fill="%238a8f98"%3E暂无图片%3C/text%3E%3C/svg%3E'
+
+const displayImages = computed(() => {
+  return (product.value?.images || [])
+    .map((image) => resolveAssetUrl(image))
+    .filter(Boolean)
+})
 
 // 是否是商品所有者
 const isOwner = computed(() => {
@@ -132,9 +139,7 @@ const fetchProductDetail = async () => {
   try {
     const res = await products.getDetail(route.params.id)
     product.value = res.data
-    // 验证图片 URL 安全性
-    currentImage.value = product.value.images?.[0] ? 
-      sanitizeUrl(product.value.images[0]) : ''
+    currentImage.value = displayImages.value[0] || ''
   } catch (error) {
     console.error('获取商品详情失败:', error)
     ElMessage.error(error.message || '获取商品详情失败')

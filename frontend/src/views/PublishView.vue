@@ -75,7 +75,7 @@
                 <el-input
                   v-model="form.description"
                   type="textarea"
-                  placeholder="请详细描述商品的状况、购买时间、使用情况等（10-500字）"
+                  placeholder="可选：描述商品的状况、购买时间、使用情况等（最多500字）"
                   :rows="6"
                   maxlength="500"
                   show-word-limit
@@ -85,7 +85,7 @@
               <!-- 商品图片 -->
               <el-form-item label="商品图片" prop="images">
                 <ImageUploader v-model="form.images" :max-count="5" />
-                <div class="form-hint">最多上传5张图片，每张不超过5MB</div>
+                <div class="form-hint">可选，最多上传5张图片，每张不超过5MB</div>
               </el-form-item>
 
               <!-- 提交按钮 -->
@@ -159,20 +159,7 @@ const rules = {
     { required: true, message: '请选择商品成色', trigger: 'change' }
   ],
   description: [
-    { required: true, message: '请输入商品描述', trigger: 'blur' },
-    { min: 10, max: 500, message: '描述长度在 10 到 500 个字符', trigger: 'blur' }
-  ],
-  images: [
-    {
-      validator: (rule, value, callback) => {
-        if (!value || value.length === 0) {
-          callback(new Error('请至少上传1张商品图片'))
-        } else {
-          callback()
-        }
-      },
-      trigger: 'change'
-    }
+    { max: 500, message: '描述最多 500 个字符', trigger: 'blur' }
   ]
 }
 

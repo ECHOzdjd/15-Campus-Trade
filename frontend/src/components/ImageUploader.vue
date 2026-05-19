@@ -28,7 +28,7 @@
 import { ref, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { sanitizeUrl } from '../utils/xssProtection.js'
+import { resolveAssetUrl } from '../utils/url.js'
 
 const props = defineProps({
   modelValue: {
@@ -71,13 +71,11 @@ const fileList = ref([])
 watch(() => props.modelValue, (newVal) => {
   if (newVal && newVal.length > 0) {
     fileList.value = newVal.map((url, index) => {
-      // 安全检查：验证 URL
-      const safeUrl = sanitizeUrl(url)
       return {
         uid: Date.now() + index,
         name: `image-${index}`,
         status: 'success',
-        url: safeUrl
+        url: resolveAssetUrl(url)
       }
     })
   } else {
@@ -108,10 +106,11 @@ const beforeUpload = (file) => {
 // 上传成功
 const handleSuccess = (response, file, fileList) => {
   if (response.code === 200 || response.code === 201) {
+    const uploadedUrl = resolveAssetUrl(response.data?.url)
     // 更新文件列表中的 URL
     const index = fileList.findIndex(item => item.uid === file.uid)
     if (index !== -1) {
-      fileList[index].url = response.data.url
+      fileList[index].url = uploadedUrl
     }
 
     // 提取所有成功上传的图片 URL

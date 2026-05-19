@@ -35,6 +35,25 @@ describe('userModel', () => {
     expect(result).toEqual(mockUser)
   })
 
+  test('findByEmail should normalize mojibake username', async () => {
+    const decoder = new TextDecoder('windows-1252')
+    const mockUser = {
+      id: 1,
+      username: decoder.decode(Buffer.from('\u738b\u52c7', 'utf8')),
+      email: 'test@example.com',
+      password: 'hashedpassword',
+      phone: '1234567890',
+      avatar: null,
+      created_at: '2026-01-01',
+      updated_at: '2026-01-01'
+    }
+    pool.query.mockResolvedValueOnce([[mockUser]])
+
+    const result = await userModel.findByEmail('test@example.com')
+
+    expect(result.username).toBe('\u738b\u52c7')
+  })
+
   // 测试2: findByEmail - 未找到用户
   test('findByEmail should return null when not found', async () => {
     pool.query.mockResolvedValueOnce([[]])

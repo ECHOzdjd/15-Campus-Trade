@@ -1,4 +1,9 @@
 const pool = require('../config/db')
+const { getTextVariants, normalizeText } = require('../utils/textEncoding')
+
+function parseImages(images) {
+  return typeof images === 'string' ? JSON.parse(images) : (images || [])
+}
 
 /**
  * 商品数据模型
@@ -44,15 +49,22 @@ async function findAll(filters = {}) {
 
   // 搜索关键词
   if (search) {
-    conditions.push('(p.title LIKE ? OR p.description LIKE ?)')
-    const searchPattern = `%${search}%`
-    params.push(searchPattern, searchPattern)
+    const searchPatterns = getTextVariants(search).map(value => `%${value}%`)
+    if (searchPatterns.length > 0) {
+      conditions.push(`(${searchPatterns.map(() => '(p.title LIKE ? OR p.description LIKE ?)').join(' OR ')})`)
+      searchPatterns.forEach(pattern => {
+        params.push(pattern, pattern)
+      })
+    }
   }
 
   // 分类过滤
   if (category) {
-    conditions.push('p.category = ?')
-    params.push(category)
+    const categoryVariants = getTextVariants(category)
+    if (categoryVariants.length > 0) {
+      conditions.push(`p.category IN (${categoryVariants.map(() => '?').join(', ')})`)
+      params.push(...categoryVariants)
+    }
   }
 
   // 价格范围
@@ -97,16 +109,16 @@ async function findAll(filters = {}) {
   // 处理 JSON 字段和卖家信息
   const products = rows.map(row => ({
     id: row.id,
-    title: row.title,
-    description: row.description,
+    title: normalizeText(row.title),
+    description: normalizeText(row.description),
     price: parseFloat(row.price),
-    category: row.category,
+    category: normalizeText(row.category),
     condition: row.condition,
-    images: typeof row.images === 'string' ? JSON.parse(row.images) : (row.images || []),
+    images: parseImages(row.images),
     status: row.status,
     seller: {
       id: row.seller_id,
-      username: row.seller_username,
+      username: normalizeText(row.seller_username),
       avatar: row.seller_avatar
     },
     createdAt: row.created_at,
@@ -140,16 +152,16 @@ async function findById(id) {
   const row = rows[0]
   return {
     id: row.id,
-    title: row.title,
-    description: row.description,
+    title: normalizeText(row.title),
+    description: normalizeText(row.description),
     price: parseFloat(row.price),
-    category: row.category,
+    category: normalizeText(row.category),
     condition: row.condition,
-    images: typeof row.images === 'string' ? JSON.parse(row.images) : (row.images || []),
+    images: parseImages(row.images),
     status: row.status,
     seller: {
       id: row.seller_id,
-      username: row.seller_username,
+      username: normalizeText(row.seller_username),
       email: row.seller_email,
       avatar: row.seller_avatar
     },
@@ -169,20 +181,20 @@ async function findByUserId(userId) {
       id, user_id, title, description, price, category,
       \`condition\`, images, status, created_at, updated_at
     FROM products
-    WHERE user_id = ?
+    WHERE user_id = ? AND status != ?
     ORDER BY created_at DESC`,
-    [userId]
+    [userId, 'removed']
   )
 
   return rows.map(row => ({
     id: row.id,
     userId: row.user_id,
-    title: row.title,
-    description: row.description,
+    title: normalizeText(row.title),
+    description: normalizeText(row.description),
     price: parseFloat(row.price),
-    category: row.category,
+    category: normalizeText(row.category),
     condition: row.condition,
-    images: typeof row.images === 'string' ? JSON.parse(row.images) : (row.images || []),
+    images: parseImages(row.images),
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at

@@ -50,6 +50,8 @@ public/uploads/
 *.sqlite
 *.db
 mysql-data/
+secrets/*.txt
+!secrets/*.example.txt
 
 # ===========================
 # 操作系统生成文件

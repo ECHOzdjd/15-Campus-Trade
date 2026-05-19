@@ -60,6 +60,36 @@ describe('productModel', () => {
   })
 
   // 测试3: findById - 找到商品
+  test('findAll should search mojibake text variants', async () => {
+    const decoder = new TextDecoder('windows-1252')
+    const mojibakeKeyword = decoder.decode(Buffer.from('\u53f0\u706f', 'utf8'))
+
+    pool.query.mockResolvedValueOnce([[{ total: 0 }]])
+    pool.query.mockResolvedValueOnce([[]])
+
+    await productModel.findAll({ search: '\u53f0\u706f', page: 1, pageSize: 10 })
+
+    expect(pool.query).toHaveBeenCalledWith(
+      expect.stringContaining('LIKE'),
+      expect.arrayContaining([`%${mojibakeKeyword}%`])
+    )
+  })
+
+  test('findAll should apply category mojibake variants', async () => {
+    const decoder = new TextDecoder('windows-1252')
+    const mojibakeCategory = decoder.decode(Buffer.from('\u751f\u6d3b\u7528\u54c1', 'utf8'))
+
+    pool.query.mockResolvedValueOnce([[{ total: 0 }]])
+    pool.query.mockResolvedValueOnce([[]])
+
+    await productModel.findAll({ category: '\u751f\u6d3b\u7528\u54c1', page: 1, pageSize: 10 })
+
+    expect(pool.query).toHaveBeenCalledWith(
+      expect.stringContaining('p.category IN'),
+      expect.arrayContaining([mojibakeCategory])
+    )
+  })
+
   test('findById should return product with seller info', async () => {
     const mockProduct = {
       id: 1,
@@ -86,6 +116,39 @@ describe('productModel', () => {
     expect(result.id).toBe(1)
     expect(result.seller.email).toBe('seller@test.com')
     expect(result.images).toEqual(['img1.jpg'])
+  })
+
+  test('findById should normalize mojibake product text', async () => {
+    const decoder = new TextDecoder('windows-1252')
+    const title = decoder.decode(Buffer.from('\u53f0\u706f\u62a4\u773c\u706f', 'utf8'))
+    const description = decoder.decode(Buffer.from('\u9002\u5408\u5b66\u4e60\u4f7f\u7528', 'utf8'))
+    const category = decoder.decode(Buffer.from('\u751f\u6d3b\u7528\u54c1', 'utf8'))
+
+    pool.query.mockResolvedValueOnce([[
+      {
+        id: 1,
+        user_id: 1,
+        title,
+        description,
+        price: 100.00,
+        category,
+        condition: 'new',
+        images: JSON.stringify([]),
+        status: 'available',
+        created_at: '2026-01-01',
+        updated_at: '2026-01-01',
+        seller_id: 1,
+        seller_username: 'seller',
+        seller_email: 'seller@test.com',
+        seller_avatar: null
+      }
+    ]])
+
+    const result = await productModel.findById(1)
+
+    expect(result.title).toBe('\u53f0\u706f\u62a4\u773c\u706f')
+    expect(result.description).toBe('\u9002\u5408\u5b66\u4e60\u4f7f\u7528')
+    expect(result.category).toBe('\u751f\u6d3b\u7528\u54c1')
   })
 
   // 测试4: findById - 未找到商品
@@ -170,8 +233,8 @@ describe('productModel', () => {
     expect(result).toHaveLength(1)
     expect(result[0].userId).toBe(1)
     expect(pool.query).toHaveBeenCalledWith(
-      expect.stringContaining('WHERE user_id = ?'),
-      [1]
+      expect.stringContaining('WHERE user_id = ? AND status != ?'),
+      [1, 'removed']
     )
   })
 })

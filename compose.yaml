@@ -1,7 +1,6 @@
-version: '3.8'
+name: campus-trade
 
 services:
-  # MySQL 数据库服务
   mysql:
     image: mysql:8.0
     container_name: campus-trade-mysql
@@ -13,69 +12,63 @@ services:
       MYSQL_USER: campustrade
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3307:3306"  # 改用 3307 端口，避免与本地 MySQL 冲突
+      - "3307:3306"
     volumes:
-      # 数据持久化
       - ./mysql-data:/var/lib/mysql
-      # 初始化脚本（按字母顺序执行）
-      - ./backend/src/scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql
-      - ./backend/src/scripts/seed-data.sql:/docker-entrypoint-initdb.d/02-seed-data.sql
+      - ./backend/src/scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql:ro
+      - ./backend/src/scripts/seed-data.sql:/docker-entrypoint-initdb.d/02-seed-data.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - campus-trade-network
 
-  # 后端服务
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      target: dev
     container_name: campus-trade-backend
     restart: unless-stopped
-    ports:
-      - "3001:3001"
+    command: ["npx", "nodemon", "--legacy-watch", "src/app.js"]
     environment:
-      # 数据库配置
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USER: campustrade
       DB_PASSWORD: ${MYSQL_PASSWORD}
       DB_NAME: campus_trade
-      # JWT 配置
-      JWT_SECRET: ${JWT_SECRET}
-      # 服务端口
+      JWT_SECRET: ${JWT_SECRET:-devsecret}
       PORT: 3001
-      # Node 环境
-      NODE_ENV: production
+      NODE_ENV: development
+    ports:
+      - "3001:3001"
     volumes:
-      # 挂载 uploads 目录（文件上传）
+      - ./backend:/app
+      - backend-node-modules:/app/node_modules
       - ./backend/uploads:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
-    networks:
-      - campus-trade-network
 
-  # 前端服务
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      target: dev
     container_name: campus-trade-frontend
     restart: unless-stopped
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+    environment:
+      VITE_API_BASE_URL: http://localhost:3001/api
+      CHOKIDAR_USEPOLLING: "true"
     ports:
-      - "80:80"
+      - "80:5173"
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
     depends_on:
-      - backend
-    networks:
-      - campus-trade-network
-
-networks:
-  campus-trade-network:
-    driver: bridge
+      backend:
+        condition: service_started
 
 volumes:
-  mysql-data:
+  backend-node-modules:
+  frontend-node-modules:

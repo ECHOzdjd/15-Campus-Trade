@@ -27,9 +27,12 @@ app.use('/api/orders',   orderRoutes)
 app.use('/api/upload',   uploadRoutes)
 
 // 健康检查
-app.get('/api/health', (req, res) => {
+const healthHandler = (req, res) => {
   res.json({ code: 200, message: 'OK' })
-})
+}
+
+app.get('/health', healthHandler)
+app.get('/api/health', healthHandler)
 
 // 统一错误处理
 app.use(errorHandler)

@@ -120,7 +120,7 @@
                   <el-input
                     v-model="registerForm.password"
                     type="password"
-                    placeholder="请输入密码（至少6位）"
+                    placeholder="请输入密码（至少4位）"
                     show-password
                   >
                     <template #prefix>
@@ -192,7 +192,7 @@ const loginRules = {
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码至少6位', trigger: 'blur' }
+    { min: 4, message: '密码至少4位', trigger: 'blur' }
   ]
 }
 
@@ -226,7 +226,7 @@ const registerRules = {
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码至少6位', trigger: 'blur' }
+    { min: 4, message: '密码至少4位', trigger: 'blur' }
   ],
   confirmPassword: [
     { required: true, validator: validateConfirmPassword, trigger: 'blur' }
@@ -247,7 +247,7 @@ const handleLogin = async () => {
         password: loginForm.password
       })
 
-      if (res.code === 200) {
+      if (res.code === 200 || res.code === 201) {
         userStore.setToken(res.data.token)
         ElMessage.success('登录成功')
 
@@ -280,7 +280,7 @@ const handleRegister = async () => {
         password: registerForm.password
       })
 
-      if (res.code === 200) {
+      if (res.code === 200 || res.code === 201) {
         ElMessage.success('注册成功，请登录')
         activeTab.value = 'login'
         loginForm.username = registerForm.username

@@ -106,7 +106,7 @@
                       <el-input
                         v-model="passwordForm.newPassword"
                         type="password"
-                        placeholder="请输入新密码（至少6位）"
+                        placeholder="请输入新密码（至少4位）"
                         show-password
                       />
                     </el-form-item>
@@ -187,7 +187,7 @@ const passwordRules = {
   ],
   newPassword: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, message: '密码长度至少6位', trigger: 'blur' }
+    { min: 4, message: '密码长度至少4位', trigger: 'blur' }
   ],
   confirmPassword: [
     { required: true, message: '请再次输入新密码', trigger: 'blur' },

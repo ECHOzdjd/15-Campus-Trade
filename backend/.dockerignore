@@ -3,8 +3,12 @@ npm-debug.log
 .env
 .env.local
 uploads
+coverage
+src/test
+tests
 *.log
 .DS_Store
 .git
 .gitignore
 README.md
+%USERPROFILE%

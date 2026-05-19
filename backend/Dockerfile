@@ -1,22 +1,30 @@
-FROM node:18-alpine
+FROM node:18-alpine AS base
 
-# 设置工作目录
 WORKDIR /app
 
-# 复制 package.json 和 package-lock.json
 COPY package*.json ./
 
-# 安装依赖
-RUN npm ci --only=production
+FROM base AS deps
+RUN npm ci --omit=dev && npm cache clean --force
 
-# 复制源代码
-COPY . .
-
-# 创建 uploads 目录
-RUN mkdir -p uploads
-
-# 暴露端口
+FROM base AS dev
+ENV NODE_ENV=development
+RUN npm ci
+COPY --chown=node:node . .
+RUN mkdir -p uploads && chown -R node:node /app
+USER node
 EXPOSE 3001
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://127.0.0.1:3001/health || exit 1
+CMD ["npm", "run", "dev"]
 
-# 启动应用
+FROM base AS production
+ENV NODE_ENV=production
+COPY --from=deps --chown=node:node /app/node_modules ./node_modules
+COPY --chown=node:node . .
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh && mkdir -p uploads && chown -R node:node /app/uploads
+USER node
+EXPOSE 3001
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://127.0.0.1:3001/health || exit 1
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "src/app.js"]

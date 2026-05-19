@@ -2,7 +2,7 @@
   <el-card class="product-card" :body-style="{ padding: '0' }" @click="goToDetail">
     <!-- 商品图片 -->
     <div class="product-image">
-      <img :src="product.images?.[0] || defaultImage" :alt="product.title" />
+      <img :src="productImage" :alt="product.title" />
       <div v-if="product.status === 'sold'" class="sold-overlay">
         <span class="sold-badge">已售出</span>
       </div>
@@ -53,8 +53,10 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Edit, Delete } from '@element-plus/icons-vue'
+import { resolveAssetUrl } from '../utils/url.js'
 
 const props = defineProps({
   product: {
@@ -73,6 +75,10 @@ const router = useRouter()
 
 // 默认图片
 const defaultImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect width="400" height="400" fill="%23191a1b"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="48" fill="%238a8f98"%3E暂无图片%3C/text%3E%3C/svg%3E'
+
+const productImage = computed(() => {
+  return resolveAssetUrl(props.product.images?.[0]) || defaultImage
+})
 
 // 格式化时间
 const formatTime = (time) => {

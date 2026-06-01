@@ -36,7 +36,10 @@ const ProductCard = {
 // Mock router
 const router = createRouter({
   history: createWebHistory(),
-  routes: [{ path: '/product/:id', name: 'ProductDetail' }]
+  routes: [
+    { path: '/', name: 'Home', component: { template: '<div />' } },
+    { path: '/product/:id', name: 'ProductDetail', component: { template: '<div />' } }
+  ]
 })
 
 describe('ProductCard Component Tests', () => {

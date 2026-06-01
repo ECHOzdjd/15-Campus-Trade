@@ -31,6 +31,7 @@ async function findAll(filters = {}) {
     minPrice,
     maxPrice,
     status = 'available',
+    includeRemoved = false,
     sortBy = 'created_at',
     sortOrder = 'DESC',
     page = 1,
@@ -45,6 +46,9 @@ async function findAll(filters = {}) {
   if (status) {
     conditions.push('p.status = ?')
     params.push(status)
+  } else if (!includeRemoved) {
+    conditions.push('p.status != ?')
+    params.push('removed')
   }
 
   // 搜索关键词

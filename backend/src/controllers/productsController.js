@@ -50,7 +50,7 @@ async function getDetail(req, res, next) {
     const { id } = req.params
     const product = await productModel.findById(parseInt(id))
 
-    if (!product) {
+    if (!product || product.status === 'removed') {
       return res.status(404).json({
         code: 404,
         message: '产品不存在',

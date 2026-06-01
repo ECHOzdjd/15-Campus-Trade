@@ -66,7 +66,7 @@
                 <el-form-item>
                   <div class="form-footer">
                     <el-checkbox v-model="loginForm.remember">记住我</el-checkbox>
-                    <el-link type="primary" :underline="false">忘记密码？</el-link>
+                    <el-link type="primary" underline="never">忘记密码？</el-link>
                   </div>
                 </el-form-item>
 

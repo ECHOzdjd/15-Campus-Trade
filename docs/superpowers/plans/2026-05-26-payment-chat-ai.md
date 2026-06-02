@@ -109,7 +109,7 @@ cd backend
 $env:DB_HOST='127.0.0.1'
 $env:DB_PORT='3307'
 $env:DB_USER='root'
-$env:DB_PASSWORD='devpass'
+$env:DB_PASSWORD='<DB_PASSWORD>'
 $env:DB_NAME='campus_trade'
 npm test
 ```
@@ -1999,4 +1999,3 @@ frontend build passes
   - Order statuses are consistently `pending_payment`, `paid_escrow`, `meeting_confirmed`, `completed`, `cancelled`, `disputed`, `refunded`.
   - Message types are consistently `text`, `image`, `system`.
   - Dispute resolution values are consistently `refund` and `release`.
-

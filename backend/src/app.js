@@ -1,7 +1,7 @@
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
-const morgan = require('morgan')
+const packageJson = require('../package.json')
 
 const authRoutes    = require('./routes/auth')
 const productRoutes = require('./routes/products')
@@ -14,13 +14,16 @@ const disputeRoutes = require('./routes/disputes')
 const aiRoutes = require('./routes/ai')
 const adminRoutes = require('./routes/admin')
 const errorHandler  = require('./middlewares/errorHandler')
+const requestLogger = require('./middlewares/requestLogger')
 const ensureRuntimeSchema = require('./config/ensureSchema')
+const { getMetricsSnapshot, metricsMiddleware } = require('./services/metrics')
 
 const app = express()
 
 // 基础中间件
 app.use(cors())
-app.use(morgan('dev'))
+app.use(metricsMiddleware)
+app.use(requestLogger)
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
@@ -41,11 +44,28 @@ app.use('/api/admin', adminRoutes)
 
 // 健康检查
 const healthHandler = (req, res) => {
-  res.json({ code: 200, message: 'OK' })
+  res.json({
+    code: 200,
+    message: 'OK',
+    data: {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      version: packageJson.version,
+      uptimeSeconds: Number(process.uptime().toFixed(2))
+    }
+  })
 }
 
 app.get('/health', healthHandler)
 app.get('/api/health', healthHandler)
+
+app.get('/metrics', (req, res) => {
+  res.json({
+    code: 200,
+    message: 'OK',
+    data: getMetricsSnapshot()
+  })
+})
 
 // 统一错误处理
 app.use(errorHandler)

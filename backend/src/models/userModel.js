@@ -24,7 +24,7 @@ function normalizeUser(user) {
  */
 async function findByEmail(email) {
   const [rows] = await pool.query(
-    'SELECT id, username, email, password, phone, avatar, created_at, updated_at FROM users WHERE email = ?',
+    'SELECT id, username, email, password, phone, avatar, role, created_at, updated_at FROM users WHERE email = ?',
     [email]
   )
   return normalizeUser(rows[0])
@@ -37,7 +37,7 @@ async function findByEmail(email) {
  */
 async function findByUsername(username) {
   const [rows] = await pool.query(
-    'SELECT id, username, email, password, phone, avatar, created_at, updated_at FROM users WHERE username = ?',
+    'SELECT id, username, email, password, phone, avatar, role, created_at, updated_at FROM users WHERE username = ?',
     [username]
   )
   return normalizeUser(rows[0])
@@ -50,7 +50,7 @@ async function findByUsername(username) {
  */
 async function findById(id) {
   const [rows] = await pool.query(
-    'SELECT id, username, email, phone, avatar, created_at, updated_at FROM users WHERE id = ?',
+    'SELECT id, username, email, phone, avatar, role, created_at, updated_at FROM users WHERE id = ?',
     [id]
   )
   return normalizeUser(rows[0])
@@ -92,10 +92,10 @@ async function checkUsernameExists(username) {
  * @param {string} [userData.avatar] - 头像 URL（可选）
  * @returns {Promise<number>} 新用户的 ID
  */
-async function create({ username, email, password, phone = null, avatar = null }) {
+async function create({ username, email, password, phone = null, avatar = null, role = 'user' }) {
   const [result] = await pool.query(
-    'INSERT INTO users (username, email, password, phone, avatar) VALUES (?, ?, ?, ?, ?)',
-    [username, email, password, phone, avatar]
+    'INSERT INTO users (username, email, password, phone, avatar, role) VALUES (?, ?, ?, ?, ?, ?)',
+    [username, email, password, phone, avatar, role]
   )
   return result.insertId
 }

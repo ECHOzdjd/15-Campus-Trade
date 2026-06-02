@@ -1,7 +1,6 @@
 <template>
   <header class="app-header">
     <div class="header-container">
-      <!-- 左侧：Logo + 平台名称 -->
       <div class="header-left">
         <router-link to="/" class="logo-link">
           <div class="logo">🎓</div>
@@ -9,7 +8,6 @@
         </router-link>
       </div>
 
-      <!-- 中间：搜索框 -->
       <div class="header-center">
         <el-input
           v-model="searchKeyword"
@@ -24,17 +22,14 @@
         </el-input>
       </div>
 
-      <!-- 右侧：用户菜单 -->
       <div class="header-right">
         <template v-if="userStore.token">
-          <!-- 发布按钮 -->
-          <el-button type="primary" @click="goToPublish" class="publish-btn">
+          <el-button type="primary" class="publish-btn" @click="goToPublish">
             <el-icon><Plus /></el-icon>
             <span class="btn-text">发布商品</span>
           </el-button>
 
-          <!-- 用户下拉菜单 -->
-          <el-dropdown @command="handleCommand" trigger="click">
+          <el-dropdown trigger="click" @command="handleCommand">
             <div class="user-avatar">
               <el-avatar :size="36" :src="userStore.userInfo?.avatar">
                 {{ userStore.userInfo?.username?.charAt(0) || 'U' }}
@@ -50,9 +45,28 @@
                   <el-icon><Box /></el-icon>
                   我的商品
                 </el-dropdown-item>
+                <el-dropdown-item command="favorites">
+                  <el-icon><Star /></el-icon>
+                  我的收藏
+                </el-dropdown-item>
+                <el-dropdown-item command="messages">
+                  <el-icon><Message /></el-icon>
+                  <el-badge v-if="unreadMessageCount" :value="unreadMessageCount" class="menu-badge">
+                    <span>我的消息</span>
+                  </el-badge>
+                  <span v-else>我的消息</span>
+                </el-dropdown-item>
+                <el-dropdown-item command="wallet">
+                  <el-icon><Wallet /></el-icon>
+                  钱包
+                </el-dropdown-item>
                 <el-dropdown-item command="orders">
                   <el-icon><Document /></el-icon>
                   我的订单
+                </el-dropdown-item>
+                <el-dropdown-item v-if="userStore.userInfo?.role === 'admin'" command="admin">
+                  <el-icon><Setting /></el-icon>
+                  管理后台
                 </el-dropdown-item>
                 <el-dropdown-item divided command="logout">
                   <el-icon><SwitchButton /></el-icon>
@@ -64,17 +78,15 @@
         </template>
 
         <template v-else>
-          <el-button @click="goToLogin" class="login-btn">登录/注册</el-button>
+          <el-button class="login-btn" @click="goToLogin">登录/注册</el-button>
         </template>
       </div>
 
-      <!-- 移动端搜索图标 -->
       <div class="header-mobile-search">
-        <el-icon @click="showMobileSearch = true" :size="20"><Search /></el-icon>
+        <el-icon :size="20" @click="showMobileSearch = true"><Search /></el-icon>
       </div>
     </div>
 
-    <!-- 移动端搜索弹窗 -->
     <el-dialog
       v-model="showMobileSearch"
       title="搜索商品"
@@ -100,19 +112,32 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '../stores/user.js'
 import { ElMessage } from 'element-plus'
-import { Search, Plus, User, Box, Document, SwitchButton } from '@element-plus/icons-vue'
+import { Box, Document, Message, Plus, Search, Setting, Star, SwitchButton, User, Wallet } from '@element-plus/icons-vue'
+import { conversations } from '../api/index.js'
+import { useUserStore } from '../stores/user.js'
 
 const router = useRouter()
 const userStore = useUserStore()
 
 const searchKeyword = ref('')
 const showMobileSearch = ref(false)
+const unreadMessageCount = ref(0)
 
-// 获取用户信息
+const fetchUnreadMessageCount = async () => {
+  if (!userStore.token) return
+
+  try {
+    const res = await conversations.getList()
+    unreadMessageCount.value = (res.data.conversations || [])
+      .reduce((total, conversation) => total + Number(conversation.unreadCount || 0), 0)
+  } catch (error) {
+    console.error('获取未读消息数量失败:', error)
+  }
+}
+
 onMounted(async () => {
   if (userStore.token && !userStore.userInfo) {
     try {
@@ -121,35 +146,32 @@ onMounted(async () => {
       console.error('获取用户信息失败:', error)
     }
   }
+  await fetchUnreadMessageCount()
 })
 
-// 搜索处理
 const handleSearch = () => {
-  if (searchKeyword.value.trim()) {
-    router.push({
-      path: '/',
-      query: { search: searchKeyword.value.trim() }
-    })
-  }
+  const keyword = searchKeyword.value.trim()
+  if (!keyword) return
+
+  router.push({
+    path: '/',
+    query: { search: keyword },
+  })
 }
 
-// 移动端搜索处理
 const handleMobileSearch = () => {
   showMobileSearch.value = false
   handleSearch()
 }
 
-// 跳转到发布页面
 const goToPublish = () => {
   router.push('/publish')
 }
 
-// 跳转到登录页面
 const goToLogin = () => {
   router.push('/login')
 }
 
-// 下拉菜单命令处理
 const handleCommand = (command) => {
   switch (command) {
     case 'profile':
@@ -158,11 +180,24 @@ const handleCommand = (command) => {
     case 'my-products':
       router.push('/my-products')
       break
+    case 'favorites':
+      router.push('/favorites')
+      break
+    case 'messages':
+      router.push('/messages')
+      break
+    case 'wallet':
+      router.push('/wallet')
+      break
     case 'orders':
       router.push('/orders')
       break
+    case 'admin':
+      router.push('/admin')
+      break
     case 'logout':
       userStore.clearToken()
+      unreadMessageCount.value = 0
       ElMessage.success('已退出登录')
       router.push('/')
       break
@@ -193,7 +228,6 @@ const handleCommand = (command) => {
   gap: var(--spacing-lg);
 }
 
-/* 左侧 Logo */
 .header-left {
   flex-shrink: 0;
 }
@@ -222,7 +256,6 @@ const handleCommand = (command) => {
   white-space: nowrap;
 }
 
-/* 中间搜索框 */
 .header-center {
   flex: 1;
   max-width: 500px;
@@ -237,7 +270,6 @@ const handleCommand = (command) => {
   border-radius: var(--radius-lg);
 }
 
-/* 右侧用户菜单 */
 .header-right {
   flex-shrink: 0;
   display: flex;
@@ -260,11 +292,14 @@ const handleCommand = (command) => {
   opacity: 0.8;
 }
 
+.menu-badge {
+  line-height: 1;
+}
+
 .login-btn {
   white-space: nowrap;
 }
 
-/* 移动端搜索图标 */
 .header-mobile-search {
   display: none;
   cursor: pointer;
@@ -276,27 +311,20 @@ const handleCommand = (command) => {
   color: var(--text-primary);
 }
 
-/* 响应式设计 */
 @media (max-width: 768px) {
   .header-container {
     padding: 0 var(--spacing-md);
     gap: var(--spacing-md);
   }
 
-  .platform-name {
-    display: none;
-  }
-
-  .header-center {
+  .platform-name,
+  .header-center,
+  .publish-btn .btn-text {
     display: none;
   }
 
   .header-mobile-search {
     display: block;
-  }
-
-  .publish-btn .btn-text {
-    display: none;
   }
 
   .publish-btn {

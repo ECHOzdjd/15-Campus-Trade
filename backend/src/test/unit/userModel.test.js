@@ -96,7 +96,7 @@ describe('userModel', () => {
 
     expect(pool.query).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO users'),
-      ['newuser', 'new@example.com', 'hashedpassword', '1234567890', null]
+      ['newuser', 'new@example.com', 'hashedpassword', '1234567890', null, 'user']
     )
     expect(result).toBe(5)
   })

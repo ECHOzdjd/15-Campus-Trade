@@ -10,8 +10,13 @@ const routes = [
   { path: '/product/:id/edit', component: () => import('../views/EditProductView.vue'), meta: { requiresAuth: true } },
   { path: '/orders',         component: () => import('../views/OrderListView.vue'),      meta: { requiresAuth: true } },
   { path: '/orders/:id',     component: () => import('../views/OrderDetailView.vue'),    meta: { requiresAuth: true } },
+  { path: '/wallet',         component: () => import('../views/WalletView.vue'),         meta: { requiresAuth: true } },
+  { path: '/messages',       component: () => import('../views/ConversationListView.vue'), meta: { requiresAuth: true } },
+  { path: '/messages/:id',   component: () => import('../views/ConversationDetailView.vue'), meta: { requiresAuth: true } },
+  { path: '/favorites',      component: () => import('../views/FavoritesView.vue'),      meta: { requiresAuth: true } },
   { path: '/profile',        component: () => import('../views/ProfileView.vue'),        meta: { requiresAuth: true } },
   { path: '/my-products',    component: () => import('../views/MyProductsView.vue'),     meta: { requiresAuth: true } },
+  { path: '/admin',          component: () => import('../views/AdminView.vue'),          meta: { requiresAuth: true, requiresAdmin: true } },
 ]
 
 const router = createRouter({
@@ -24,6 +29,22 @@ router.beforeEach((to) => {
   if (to.meta.requiresAuth && !localStorage.getItem('token')) {
     return '/login'
   }
+
+  if (to.meta.requiresAdmin && getTokenRole() !== 'admin') {
+    return '/'
+  }
 })
 
 export default router
+
+function getTokenRole() {
+  const token = localStorage.getItem('token')
+  if (!token) return ''
+
+  try {
+    const payload = token.split('.')[1]
+    return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))).role || ''
+  } catch (_error) {
+    return ''
+  }
+}

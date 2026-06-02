@@ -60,7 +60,7 @@ async function register(req, res, next) {
     const user = await userModel.findById(userId)
 
     // 签发 Token
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, {
       expiresIn: '7d',
     })
 
@@ -75,6 +75,7 @@ async function register(req, res, next) {
           username: user.username,
           avatar: user.avatar,
           phone: user.phone,
+          role: user.role,
           createdAt: user.created_at,
         },
       },
@@ -142,7 +143,7 @@ async function login(req, res, next) {
     }
 
     // 签发 Token
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, {
       expiresIn: '7d',
     })
 
@@ -157,6 +158,7 @@ async function login(req, res, next) {
           username: user.username,
           avatar: user.avatar,
           phone: user.phone,
+          role: user.role,
           createdAt: user.created_at,
         },
       },
@@ -187,6 +189,7 @@ async function getMe(req, res, next) {
         username: user.username,
         avatar: user.avatar,
         phone: user.phone,
+        role: user.role,
         createdAt: user.created_at,
       },
     })

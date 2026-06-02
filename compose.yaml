@@ -7,10 +7,10 @@ services:
     restart: unless-stopped
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
       MYSQL_DATABASE: campus_trade
       MYSQL_USER: campustrade
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
     ports:
       - "3307:3306"
     volumes:
@@ -34,9 +34,9 @@ services:
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USER: campustrade
-      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
       DB_NAME: campus_trade
-      JWT_SECRET: ${JWT_SECRET:-devsecret}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       PORT: 3001
       NODE_ENV: development
     ports:

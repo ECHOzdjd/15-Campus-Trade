@@ -66,7 +66,7 @@ function loginLimitMiddleware(req, res, next) {
 }
 
 // 定期清理过期的记录（防止内存泄漏）
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
   const now = Date.now()
   for (const [ip, attempts] of loginAttempts.entries()) {
     if (now - attempts.firstAttempt > ATTEMPT_WINDOW * 2) {
@@ -74,5 +74,7 @@ setInterval(() => {
     }
   }
 }, 60 * 1000) // 每 60 秒清理一次
+
+cleanupTimer.unref()
 
 module.exports = loginLimitMiddleware

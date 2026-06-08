@@ -200,52 +200,48 @@ describe('API Integration Tests', () => {
     expect(response.body.code).toBe(401)
   })
 
-  test('POST /api/ai/product-draft - should build campus trade draft', async () => {
+  test('POST /api/ai/product-draft - should require Ark key for draft generation', async () => {
     const response = await request(app)
       .post('/api/ai/product-draft')
       .set('Authorization', `Bearer ${testToken}`)
       .send({ title: '  高数教材  ', condition: 'like_new' })
 
-    expect(response.status).toBe(200)
-    expect(response.body.data.title).toBe('高数教材 校园面交')
-    expect(response.body.data.category).toBe('二手好物')
-    expect(response.body.data.description).toContain('几乎全新')
+    expect(response.status).toBe(503)
+    expect(response.body.code).toBe(503)
+    expect(response.body.data).toBeNull()
   })
 
-  test('POST /api/ai/product-draft - should return defaults for empty body', async () => {
+  test('POST /api/ai/product-draft - should require Ark key for empty body', async () => {
     const response = await request(app)
       .post('/api/ai/product-draft')
       .set('Authorization', `Bearer ${testToken}`)
       .send({})
 
-    expect(response.status).toBe(200)
-    expect(response.body.data.title).toBe('二手好物 校园面交')
-    expect(response.body.data.category).toBe('二手好物')
-    expect(response.body.data.condition).toBe('good')
+    expect(response.status).toBe(503)
+    expect(response.body.code).toBe(503)
+    expect(response.body.data).toBeNull()
   })
 
-  test('POST /api/ai/price-suggestion - should return numeric price suggestions', async () => {
+  test('POST /api/ai/price-suggestion - should require Ark key for price suggestions', async () => {
     const response = await request(app)
       .post('/api/ai/price-suggestion')
       .set('Authorization', `Bearer ${testToken}`)
       .send({ originalPrice: 100, condition: 'good' })
 
-    expect(response.status).toBe(200)
-    expect(typeof response.body.data.quickSalePrice).toBe('number')
-    expect(typeof response.body.data.fairPrice).toBe('number')
-    expect(typeof response.body.data.highDisplayPrice).toBe('number')
+    expect(response.status).toBe(503)
+    expect(response.body.code).toBe(503)
+    expect(response.body.data).toBeNull()
   })
 
-  test('POST /api/ai/price-suggestion - should handle malformed price input', async () => {
+  test('POST /api/ai/price-suggestion - should require Ark key before malformed price handling', async () => {
     const response = await request(app)
       .post('/api/ai/price-suggestion')
       .set('Authorization', `Bearer ${testToken}`)
       .send({ price: 'abc' })
 
-    expect(response.status).toBe(200)
-    expect(typeof response.body.data.quickSalePrice).toBe('number')
-    expect(typeof response.body.data.fairPrice).toBe('number')
-    expect(typeof response.body.data.highDisplayPrice).toBe('number')
+    expect(response.status).toBe(503)
+    expect(response.body.code).toBe(503)
+    expect(response.body.data).toBeNull()
   })
 
   test('POST /api/ai/risk-check - should fail without token', async () => {

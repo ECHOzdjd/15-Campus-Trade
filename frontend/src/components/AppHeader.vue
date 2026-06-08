@@ -64,7 +64,11 @@
                   <el-icon><Document /></el-icon>
                   我的订单
                 </el-dropdown-item>
-                <el-dropdown-item v-if="userStore.userInfo?.role === 'admin'" command="admin">
+                <el-dropdown-item
+                  v-if="userStore.userInfo?.role === 'admin'"
+                  command="admin"
+                  @click.stop="goToAdmin"
+                >
                   <el-icon><Setting /></el-icon>
                   管理后台
                 </el-dropdown-item>
@@ -170,6 +174,10 @@ const goToPublish = () => {
 
 const goToLogin = () => {
   router.push('/login')
+}
+
+const goToAdmin = () => {
+  router.push('/admin')
 }
 
 const handleCommand = (command) => {

@@ -38,6 +38,7 @@
                     show-word-limit
                     placeholder="请说明争议原因"
                   />
+                  <ImageUploader v-model="disputeEvidenceImages" :max-count="5" />
                   <el-button type="danger" plain :loading="disputeLoading" @click="handleCreateDispute">
                     提交争议
                   </el-button>
@@ -55,9 +56,35 @@
                     <span>争议原因</span>
                     <p>{{ latestDispute.reason }}</p>
                   </div>
+                  <div v-if="latestDispute.evidenceImages?.length" class="dispute-field">
+                    <span>争议图片</span>
+                    <div class="dispute-images">
+                      <el-image
+                        v-for="image in resolveImageList(latestDispute.evidenceImages)"
+                        :key="image"
+                        :src="image"
+                        :preview-src-list="resolveImageList(latestDispute.evidenceImages)"
+                        fit="cover"
+                        class="dispute-image"
+                      />
+                    </div>
+                  </div>
                   <div v-if="latestDispute.response" class="dispute-field">
                     <span>补充说明</span>
                     <p>{{ latestDispute.response }}</p>
+                  </div>
+                  <div v-if="latestDispute.responseImages?.length" class="dispute-field">
+                    <span>补充图片</span>
+                    <div class="dispute-images">
+                      <el-image
+                        v-for="image in resolveImageList(latestDispute.responseImages)"
+                        :key="image"
+                        :src="image"
+                        :preview-src-list="resolveImageList(latestDispute.responseImages)"
+                        fit="cover"
+                        class="dispute-image"
+                      />
+                    </div>
                   </div>
                   <div v-if="latestDispute.resolutionNote" class="dispute-field">
                     <span>处理说明</span>
@@ -73,6 +100,7 @@
                       show-word-limit
                       placeholder="补充说明验货、退款或放款依据"
                     />
+                    <ImageUploader v-model="disputeResponseImages" :max-count="5" />
                     <div class="dispute-actions">
                       <el-button :loading="disputeResponseLoading" @click="handleRespondDispute">
                         补充说明
@@ -156,6 +184,7 @@ import { conversations, disputes, orders } from '../api/index.js'
 import { useUserStore } from '../stores/user.js'
 import { resolveAssetUrl } from '../utils/url.js'
 import AppHeader from '../components/AppHeader.vue'
+import ImageUploader from '../components/ImageUploader.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -166,6 +195,8 @@ const disputeLoading = ref(false)
 const disputeResponseLoading = ref(false)
 const disputeReason = ref('')
 const disputeResponse = ref('')
+const disputeEvidenceImages = ref([])
+const disputeResponseImages = ref([])
 const order = ref(null)
 const defaultImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="300"%3E%3Crect width="300" height="300" fill="%23191a1b"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="32" fill="%238a8f98"%3ENo Image%3C/text%3E%3C/svg%3E'
 
@@ -262,6 +293,10 @@ const formatDate = (value) => {
   return new Date(value).toLocaleString('zh-CN')
 }
 
+const resolveImageList = (images = []) => {
+  return images.map(resolveAssetUrl).filter(Boolean)
+}
+
 const fetchOrder = async () => {
   loading.value = true
   try {
@@ -272,6 +307,7 @@ const fetchOrder = async () => {
     order.value = res.data
     const dispute = res.data?.disputes?.[0]
     disputeResponse.value = dispute?.response || ''
+    disputeResponseImages.value = dispute?.responseImages || []
   } catch (error) {
     console.error('获取订单详情失败:', error)
     ElMessage.error(error.message || '获取订单详情失败')
@@ -291,7 +327,10 @@ const handleRespondDispute = async () => {
 
   disputeResponseLoading.value = true
   try {
-    await disputes.respond(activeDispute.value.id, { response })
+    await disputes.respond(activeDispute.value.id, {
+      response,
+      responseImages: disputeResponseImages.value,
+    })
     ElMessage.success('补充说明已提交')
     await fetchOrder()
   } catch (error) {
@@ -380,8 +419,12 @@ const handleCreateDispute = async () => {
 
   disputeLoading.value = true
   try {
-    await orders.createDispute(order.value.id, { reason })
+    await orders.createDispute(order.value.id, {
+      reason,
+      evidenceImages: disputeEvidenceImages.value,
+    })
     disputeReason.value = ''
+    disputeEvidenceImages.value = []
     ElMessage.success('争议已提交')
     await fetchOrder()
   } catch (error) {

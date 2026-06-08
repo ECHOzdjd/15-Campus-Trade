@@ -8,25 +8,25 @@ function sendSuccess(res, data) {
   })
 }
 
-function productDraft(req, res, next) {
+async function productDraft(req, res, next) {
   try {
-    sendSuccess(res, aiService.buildProductDraft(req.body))
+    sendSuccess(res, await aiService.buildProductDraft(req.body))
   } catch (error) {
     next(error)
   }
 }
 
-function priceSuggestion(req, res, next) {
+async function priceSuggestion(req, res, next) {
   try {
-    sendSuccess(res, aiService.suggestPrice(req.body))
+    sendSuccess(res, await aiService.suggestPrice(req.body))
   } catch (error) {
     next(error)
   }
 }
 
-function riskCheck(req, res, next) {
+async function riskCheck(req, res, next) {
   try {
-    sendSuccess(res, aiService.riskCheck(req.body.content))
+    sendSuccess(res, await aiService.riskCheck(req.body.content))
   } catch (error) {
     next(error)
   }

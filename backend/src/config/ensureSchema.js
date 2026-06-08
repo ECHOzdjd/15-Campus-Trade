@@ -128,7 +128,9 @@ async function ensureRuntimeSchema() {
       order_id        INT       NOT NULL,
       opened_by       INT       NOT NULL,
       reason          TEXT      NOT NULL,
+      evidence_images JSON      NULL,
       response        TEXT      NULL,
+      response_images JSON      NULL,
       status          ENUM('open', 'responded', 'resolved_refund', 'resolved_release') NOT NULL DEFAULT 'open',
       resolution_note TEXT      NULL,
       created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -142,6 +144,8 @@ async function ensureRuntimeSchema() {
       CONSTRAINT fk_disputes_opened_by FOREIGN KEY (opened_by) REFERENCES users (id) ON DELETE RESTRICT
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `)
+  await ensureColumn('disputes', 'evidence_images', 'JSON NULL')
+  await ensureColumn('disputes', 'response_images', 'JSON NULL')
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS conversations (

@@ -37,6 +37,9 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
       DB_NAME: campus_trade
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      ARK_API_KEY: ${ARK_API_KEY:-}
+      ARK_BASE_URL: ${ARK_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}
+      ARK_MODEL: ${ARK_MODEL:-doubao-seed-2-0-mini-260215}
       PORT: 3001
       NODE_ENV: development
     ports:

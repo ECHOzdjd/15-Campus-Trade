@@ -11,6 +11,13 @@ function isParticipant(order, userId) {
   return order.buyer.id === userId || order.seller.id === userId
 }
 
+function normalizeImageList(images) {
+  if (!Array.isArray(images)) return []
+  return images
+    .filter((url) => typeof url === 'string' && url.trim())
+    .slice(0, 5)
+}
+
 function mapLockedOrder(row) {
   if (!row) return null
 
@@ -40,6 +47,7 @@ async function respond(req, res, next) {
   try {
     const dispute = await disputeModel.findById(parseInt(req.params.id))
     const response = typeof req.body.response === 'string' ? req.body.response.trim() : ''
+    const responseImages = normalizeImageList(req.body.responseImages)
 
     if (!dispute) return errorResponse(res, 404, '争议不存在')
 
@@ -54,7 +62,7 @@ async function respond(req, res, next) {
 
     if (response.length < 5) return errorResponse(res, 400, '回应内容至少 5 个字')
 
-    await disputeModel.respond(dispute.id, response)
+    await disputeModel.respond(dispute.id, response, responseImages)
     const updatedDispute = await disputeModel.findById(dispute.id)
     res.json({ code: 200, message: 'success', data: updatedDispute })
   } catch (error) {

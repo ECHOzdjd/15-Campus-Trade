@@ -9,6 +9,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  test: {
+    coverage: {
+      include: ['src/**/*.{js,vue}'],
+      exclude: ['dist/**'],
+    },
+  },
   server: {
     port: 5173,
     proxy: {

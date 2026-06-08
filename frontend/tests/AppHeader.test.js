@@ -67,12 +67,12 @@ describe('AppHeader Component Tests', () => {
     router = createRouter({
       history: createWebHistory(),
       routes: [
-        { path: '/', name: 'Home' },
-        { path: '/login', name: 'Login' },
-        { path: '/publish', name: 'Publish' },
-        { path: '/profile', name: 'Profile' },
-        { path: '/my-products', name: 'MyProducts' },
-        { path: '/orders', name: 'Orders' }
+        { path: '/', name: 'Home', component: { template: '<div />' } },
+        { path: '/login', name: 'Login', component: { template: '<div />' } },
+        { path: '/publish', name: 'Publish', component: { template: '<div />' } },
+        { path: '/profile', name: 'Profile', component: { template: '<div />' } },
+        { path: '/my-products', name: 'MyProducts', component: { template: '<div />' } },
+        { path: '/orders', name: 'Orders', component: { template: '<div />' } }
       ]
     })
     pinia = createPinia()

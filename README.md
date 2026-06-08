@@ -4,6 +4,16 @@
 [![Backend Coverage](https://codecov.io/gh/ECHOzdjd/15-Campus-Trade/branch/main/graph/badge.svg?flag=backend)](https://codecov.io/gh/ECHOzdjd/15-Campus-Trade?flag=backend)
 [![Frontend Coverage](https://codecov.io/gh/ECHOzdjd/15-Campus-Trade/branch/main/graph/badge.svg?flag=frontend)](https://codecov.io/gh/ECHOzdjd/15-Campus-Trade?flag=frontend)
 
+## 监控与日志
+
+后端提供结构化 JSON 日志、健康检查和基础请求指标：
+
+- `GET /health`
+- `GET /api/health`
+- `GET /metrics`
+
+详细说明见 `docs/monitoring.md`。
+
 ## 测试覆盖率
 
 | 模块 | 测试数量 | 覆盖率 |

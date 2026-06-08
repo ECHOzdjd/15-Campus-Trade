@@ -1,4 +1,6 @@
 // 统一错误处理中间件
+const logger = require('../utils/logger')
+
 function errorHandler(err, req, res, _next) {
   const status = err.status || 500
   const code   = err.code   || status
@@ -24,10 +26,16 @@ function errorHandler(err, req, res, _next) {
   
   // 日志记录（用于审计）
   if (status >= 500) {
-    console.error(`[${new Date().toISOString()}] Error Status ${status}: ${err.message}`)
-    if (err.stack) {
-      console.error('Stack:', err.stack)
-    }
+    logger.error('Request failed', {
+      event: 'request_error',
+      method: req.method,
+      path: req.originalUrl || req.url,
+      statusCode: status,
+      error: {
+        message: err.message,
+        stack: err.stack
+      }
+    })
   }
   
   res.status(status).json({ code, message, data: null })

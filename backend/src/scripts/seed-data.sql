@@ -19,6 +19,17 @@ INSERT INTO users (username, email, password, phone, avatar) VALUES
 ('刘芳', 'user4@campustrade.com', '$2a$10$iHgx0aHKAf1itg7OXtKMIe8KZfdnrBR03KOgH2eTwsbNMust9aOD.', '13800138004', 'https://api.dicebear.com/7.x/avataaars/svg?seed=user4'),
 ('陈静', 'user5@campustrade.com', '$2a$10$iHgx0aHKAf1itg7OXtKMIe8KZfdnrBR03KOgH2eTwsbNMust9aOD.', '13800138005', 'https://api.dicebear.com/7.x/avataaars/svg?seed=user5');
 
+INSERT IGNORE INTO users (username, email, password, phone, avatar) VALUES
+('Seller', 'seller@campustrade.com', '$2a$10$iHgx0aHKAf1itg7OXtKMIe8KZfdnrBR03KOgH2eTwsbNMust9aOD.', '13800138006', 'https://api.dicebear.com/7.x/avataaars/svg?seed=seller');
+
+INSERT IGNORE INTO users (username, email, password, phone, avatar, role) VALUES
+('admin_seed_account', 'admin@campustrade.com', '$2a$10$iHgx0aHKAf1itg7OXtKMIe8KZfdnrBR03KOgH2eTwsbNMust9aOD.', NULL, NULL, 'admin');
+
+INSERT IGNORE INTO wallets (user_id, balance, frozen_balance)
+SELECT id, 1000.00, 0.00
+FROM users
+WHERE email IN ('user1@campustrade.com', 'user2@campustrade.com', 'seller@campustrade.com');
+
 -- =====================
 -- 插入测试商品（12个）
 -- =====================
@@ -54,30 +65,30 @@ INSERT INTO products (user_id, title, description, price, category, `condition`,
 -- 插入测试订单（5个）
 -- =====================
 
--- 订单1：pending状态（用户2购买用户1的AirPods）
+-- 订单1：pending_payment状态（用户2购买用户1的AirPods）
 INSERT INTO orders (buyer_id, seller_id, product_id, status) VALUES
-(2, 1, 4, 'pending');
+(2, 1, 4, 'pending_payment');
 
 -- 更新商品4状态为sold
 UPDATE products SET status = 'sold' WHERE id = 4;
 
--- 订单2：pending状态（用户4购买用户3的自行车）
+-- 订单2：pending_payment状态（用户4购买用户3的自行车）
 INSERT INTO orders (buyer_id, seller_id, product_id, status) VALUES
-(4, 3, 7, 'pending');
+(4, 3, 7, 'pending_payment');
 
 -- 更新商品7状态为sold
 UPDATE products SET status = 'sold' WHERE id = 7;
 
--- 订单3：confirmed状态（用户5购买用户2的英语四级真题）
+-- 订单3：completed状态（用户5购买用户2的英语四级真题）
 INSERT INTO orders (buyer_id, seller_id, product_id, status) VALUES
-(5, 2, 2, 'confirmed');
+(5, 2, 2, 'completed');
 
 -- 更新商品2状态为sold
 UPDATE products SET status = 'sold' WHERE id = 2;
 
--- 订单4：confirmed状态（用户1购买用户4的小米手环）
+-- 订单4：completed状态（用户1购买用户4的小米手环）
 INSERT INTO orders (buyer_id, seller_id, product_id, status) VALUES
-(1, 4, 6, 'confirmed');
+(1, 4, 6, 'completed');
 
 -- 更新商品6状态为sold
 UPDATE products SET status = 'sold' WHERE id = 6;
@@ -85,5 +96,65 @@ UPDATE products SET status = 'sold' WHERE id = 6;
 -- 订单5：cancelled状态（用户3购买用户5的电动滑板车，但取消了）
 INSERT INTO orders (buyer_id, seller_id, product_id, status) VALUES
 (3, 5, 8, 'cancelled');
+
+-- =====================
+-- Sample conversations and favorites
+-- =====================
+INSERT IGNORE INTO conversations (buyer_id, seller_id, product_id, last_message, last_message_at) VALUES
+(2, 1, 4, 'Tonight at the library gate?', NOW()),
+(1, 3, 7, 'I can check the bike near the dorm this afternoon.', NOW());
+
+INSERT INTO messages (conversation_id, sender_id, content, is_read)
+SELECT c.id, 2, 'Hi, I want to buy this item.', 1
+FROM conversations c
+WHERE c.buyer_id = 2
+  AND c.product_id = 4
+  AND NOT EXISTS (
+    SELECT 1 FROM messages m
+    WHERE m.conversation_id = c.id
+      AND m.sender_id = 2
+      AND m.content = 'Hi, I want to buy this item.'
+  );
+
+INSERT INTO messages (conversation_id, sender_id, content, is_read)
+SELECT c.id, 1, 'Sure, we can meet at the library gate tonight.', 0
+FROM conversations c
+WHERE c.buyer_id = 2
+  AND c.product_id = 4
+  AND NOT EXISTS (
+    SELECT 1 FROM messages m
+    WHERE m.conversation_id = c.id
+      AND m.sender_id = 1
+      AND m.content = 'Sure, we can meet at the library gate tonight.'
+  );
+
+INSERT INTO messages (conversation_id, sender_id, content, is_read)
+SELECT c.id, 1, 'Can I test ride the bike?', 1
+FROM conversations c
+WHERE c.buyer_id = 1
+  AND c.product_id = 7
+  AND NOT EXISTS (
+    SELECT 1 FROM messages m
+    WHERE m.conversation_id = c.id
+      AND m.sender_id = 1
+      AND m.content = 'Can I test ride the bike?'
+  );
+
+INSERT INTO messages (conversation_id, sender_id, content, is_read)
+SELECT c.id, 3, 'Yes, see you near the dorm this afternoon.', 0
+FROM conversations c
+WHERE c.buyer_id = 1
+  AND c.product_id = 7
+  AND NOT EXISTS (
+    SELECT 1 FROM messages m
+    WHERE m.conversation_id = c.id
+      AND m.sender_id = 3
+      AND m.content = 'Yes, see you near the dorm this afternoon.'
+  );
+
+INSERT IGNORE INTO favorites (user_id, product_id) VALUES
+(1, 5),
+(2, 9),
+(3, 4);
 
 -- 商品8保持available状态（订单取消后恢复）

@@ -5,3 +5,5 @@ process.env.DB_PORT = process.env.DB_PORT || '3306'
 process.env.DB_USER = process.env.DB_USER || 'root'
 process.env.DB_PASSWORD = process.env.DB_PASSWORD || '1234'
 process.env.DB_NAME = process.env.DB_NAME || 'campus_trade'
+process.env.LOG_LEVEL = process.env.LOG_LEVEL || 'silent'
+delete process.env.ARK_API_KEY

@@ -24,11 +24,25 @@ async function create(orderData, connection = null) {
   const db = connection || pool
 
   const [result] = await db.query(
-    'INSERT INTO orders (buyer_id, seller_id, product_id, status) VALUES (?, ?, ?, ?)',
-    [buyerId, sellerId, productId, 'pending']
+    `INSERT INTO orders
+      (buyer_id, seller_id, product_id, status, payment_expires_at)
+    VALUES (?, ?, ?, 'pending_payment', DATE_ADD(NOW(), INTERVAL 30 MINUTE))`,
+    [buyerId, sellerId, productId]
   )
 
   return result.insertId
+}
+
+function mapEscrow(row) {
+  if (!row.escrow_status) {
+    return null
+  }
+
+  return {
+    amount: parseFloat(row.escrow_amount),
+    status: row.escrow_status,
+    paidAt: row.escrow_paid_at
+  }
 }
 
 /**
@@ -87,13 +101,16 @@ async function findAll(filters = {}) {
   const [rows] = await pool.query(
     `SELECT
       o.id, o.buyer_id, o.seller_id, o.product_id, o.status, o.created_at, o.updated_at,
+      o.payment_expires_at, o.buyer_handoff_confirmed, o.seller_handoff_confirmed,
       p.title as product_title, p.price as product_price, p.images as product_images,
       buyer.username as buyer_username, buyer.avatar as buyer_avatar,
-      seller.username as seller_username, seller.avatar as seller_avatar
+      seller.username as seller_username, seller.avatar as seller_avatar,
+      e.amount as escrow_amount, e.status as escrow_status, e.paid_at as escrow_paid_at
     FROM orders o
     LEFT JOIN products p ON o.product_id = p.id
     LEFT JOIN users buyer ON o.buyer_id = buyer.id
     LEFT JOIN users seller ON o.seller_id = seller.id
+    LEFT JOIN payment_escrows e ON o.id = e.order_id
     ${whereClause}
     ORDER BY o.created_at DESC
     LIMIT ? OFFSET ?`,
@@ -104,6 +121,10 @@ async function findAll(filters = {}) {
   const orders = rows.map(row => ({
     id: row.id,
     status: row.status,
+    paymentExpiresAt: row.payment_expires_at,
+    buyerHandoffConfirmed: Boolean(row.buyer_handoff_confirmed),
+    sellerHandoffConfirmed: Boolean(row.seller_handoff_confirmed),
+    escrow: mapEscrow(row),
     product: {
       id: row.product_id,
       title: normalizeText(row.product_title),
@@ -136,17 +157,20 @@ async function findById(id) {
   const [rows] = await pool.query(
     `SELECT
       o.id, o.buyer_id, o.seller_id, o.product_id, o.status, o.created_at, o.updated_at,
+      o.payment_expires_at, o.buyer_handoff_confirmed, o.seller_handoff_confirmed,
       p.title as product_title, p.description as product_description,
       p.price as product_price, p.category as product_category,
       p.condition as product_condition, p.images as product_images,
       buyer.username as buyer_username, buyer.email as buyer_email,
       buyer.phone as buyer_phone, buyer.avatar as buyer_avatar,
       seller.username as seller_username, seller.email as seller_email,
-      seller.phone as seller_phone, seller.avatar as seller_avatar
+      seller.phone as seller_phone, seller.avatar as seller_avatar,
+      e.amount as escrow_amount, e.status as escrow_status, e.paid_at as escrow_paid_at
     FROM orders o
     LEFT JOIN products p ON o.product_id = p.id
     LEFT JOIN users buyer ON o.buyer_id = buyer.id
     LEFT JOIN users seller ON o.seller_id = seller.id
+    LEFT JOIN payment_escrows e ON o.id = e.order_id
     WHERE o.id = ?`,
     [id]
   )
@@ -159,6 +183,10 @@ async function findById(id) {
   return {
     id: row.id,
     status: row.status,
+    paymentExpiresAt: row.payment_expires_at,
+    buyerHandoffConfirmed: Boolean(row.buyer_handoff_confirmed),
+    sellerHandoffConfirmed: Boolean(row.seller_handoff_confirmed),
+    escrow: mapEscrow(row),
     product: {
       id: row.product_id,
       title: normalizeText(row.product_title),
@@ -231,11 +259,45 @@ async function getProductId(orderId) {
   return rows[0] ? rows[0].product_id : null
 }
 
+async function markBuyerHandoffConfirmed(id, connection = null) {
+  const db = connection || pool
+  const [result] = await db.query(
+    'UPDATE orders SET buyer_handoff_confirmed = 1 WHERE id = ?',
+    [id]
+  )
+  return result.affectedRows > 0
+}
+
+async function markSellerHandoffConfirmed(id, connection = null) {
+  const db = connection || pool
+  const [result] = await db.query(
+    'UPDATE orders SET seller_handoff_confirmed = 1 WHERE id = ?',
+    [id]
+  )
+  return result.affectedRows > 0
+}
+
+async function findExpiredPendingPayments(connection = null) {
+  const db = connection || pool
+  const [rows] = await db.query(
+    `SELECT id, product_id
+    FROM orders
+    WHERE status = 'pending_payment'
+      AND payment_expires_at IS NOT NULL
+      AND payment_expires_at <= NOW()
+    FOR UPDATE`
+  )
+  return rows
+}
+
 module.exports = {
   create,
   findAll,
   findById,
   updateStatus,
   checkProductAvailability,
-  getProductId
+  getProductId,
+  markBuyerHandoffConfirmed,
+  markSellerHandoffConfirmed,
+  findExpiredPendingPayments
 }

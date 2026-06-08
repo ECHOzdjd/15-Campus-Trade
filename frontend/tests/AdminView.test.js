@@ -142,7 +142,7 @@ describe('AdminView', () => {
     const wrapper = mountAdminView()
     await flushPromises()
 
-    await wrapper.vm.resolveDispute({ id: 7 }, 'refund')
+    await wrapper.vm.resolveDispute({ id: 7, status: 'open' }, 'refund')
 
     expect(mocks.messageBox.prompt).toHaveBeenCalled()
     expect(mocks.disputesApi.resolve).toHaveBeenCalledWith(7, {

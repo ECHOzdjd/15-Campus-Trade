@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { auth } from '../api/index.js'
 
 const routes = [
   { path: '/',               component: () => import('../views/HomeView.vue') },
@@ -25,12 +26,12 @@ const router = createRouter({
 })
 
 // 导航守卫：未登录时跳转到登录页
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   if (to.meta.requiresAuth && !localStorage.getItem('token')) {
     return '/login'
   }
 
-  if (to.meta.requiresAdmin && getTokenRole() !== 'admin') {
+  if (to.meta.requiresAdmin && !(await isCurrentAdmin())) {
     return '/'
   }
 })
@@ -46,5 +47,18 @@ function getTokenRole() {
     return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))).role || ''
   } catch (_error) {
     return ''
+  }
+}
+
+async function isCurrentAdmin() {
+  if (getTokenRole() === 'admin') {
+    return true
+  }
+
+  try {
+    const res = await auth.getMe()
+    return res.data?.role === 'admin'
+  } catch (_error) {
+    return false
   }
 }

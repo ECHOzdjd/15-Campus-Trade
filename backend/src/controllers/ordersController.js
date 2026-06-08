@@ -15,6 +15,13 @@ function isParticipant(order, userId) {
   return order.buyer.id === userId || order.seller.id === userId
 }
 
+function normalizeImageList(images) {
+  if (!Array.isArray(images)) return []
+  return images
+    .filter((url) => typeof url === 'string' && url.trim())
+    .slice(0, 5)
+}
+
 function mapLockedOrder(row) {
   if (!row) return null
 
@@ -343,6 +350,7 @@ async function createDispute(req, res, next) {
   const connection = await pool.getConnection()
   const orderId = parseInt(req.params.id)
   const reason = typeof req.body.reason === 'string' ? req.body.reason.trim() : ''
+  const evidenceImages = normalizeImageList(req.body.evidenceImages)
 
   try {
     if (reason.length < 5) return errorResponse(res, 400, '争议原因至少 5 个字')
@@ -383,7 +391,7 @@ async function createDispute(req, res, next) {
       return errorResponse(res, 400, '订单没有可处理的托管资金')
     }
 
-    const disputeId = await disputeModel.create({ orderId, openedBy: req.user.id, reason }, connection)
+    const disputeId = await disputeModel.create({ orderId, openedBy: req.user.id, reason, evidenceImages }, connection)
     await orderModel.updateStatus(orderId, 'disputed', connection)
     await connection.commit()
 

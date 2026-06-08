@@ -5,6 +5,10 @@ function getDb(connection) {
   return connection || pool
 }
 
+function parseImages(images) {
+  return typeof images === 'string' ? JSON.parse(images) : (images || [])
+}
+
 function mapDispute(row) {
   return {
     id: row.id,
@@ -12,6 +16,8 @@ function mapDispute(row) {
     openedBy: row.opened_by,
     reason: normalizeText(row.reason),
     response: normalizeText(row.response),
+    evidenceImages: parseImages(row.evidence_images),
+    responseImages: parseImages(row.response_images),
     status: row.status,
     resolutionNote: normalizeText(row.resolution_note),
     createdAt: row.created_at,
@@ -20,11 +26,11 @@ function mapDispute(row) {
   }
 }
 
-async function create({ orderId, openedBy, reason }, connection = null) {
+async function create({ orderId, openedBy, reason, evidenceImages = [] }, connection = null) {
   const db = getDb(connection)
   const [result] = await db.query(
-    'INSERT INTO disputes (order_id, opened_by, reason) VALUES (?, ?, ?)',
-    [orderId, openedBy, reason]
+    'INSERT INTO disputes (order_id, opened_by, reason, evidence_images) VALUES (?, ?, ?, ?)',
+    [orderId, openedBy, reason, JSON.stringify(evidenceImages)]
   )
 
   return result.insertId
@@ -32,7 +38,7 @@ async function create({ orderId, openedBy, reason }, connection = null) {
 
 async function findById(id) {
   const [rows] = await pool.query(
-    `SELECT id, order_id, opened_by, reason, response, status, resolution_note,
+    `SELECT id, order_id, opened_by, reason, response, evidence_images, response_images, status, resolution_note,
       created_at, responded_at, resolved_at
     FROM disputes
     WHERE id = ?
@@ -45,7 +51,7 @@ async function findById(id) {
 
 async function findByIdForUpdate(id, connection) {
   const [rows] = await connection.query(
-    `SELECT id, order_id, opened_by, reason, response, status, resolution_note,
+    `SELECT id, order_id, opened_by, reason, response, evidence_images, response_images, status, resolution_note,
       created_at, responded_at, resolved_at
     FROM disputes
     WHERE id = ?
@@ -59,7 +65,7 @@ async function findByIdForUpdate(id, connection) {
 
 async function findByOrderId(orderId) {
   const [rows] = await pool.query(
-    `SELECT id, order_id, opened_by, reason, response, status, resolution_note,
+    `SELECT id, order_id, opened_by, reason, response, evidence_images, response_images, status, resolution_note,
       created_at, responded_at, resolved_at
     FROM disputes
     WHERE order_id = ?
@@ -86,7 +92,7 @@ async function findAll(filters = {}) {
   const offset = (page - 1) * pageSize
   const [rows] = await pool.query(
     `SELECT
-      d.id, d.order_id, d.opened_by, d.reason, d.response, d.status, d.resolution_note,
+      d.id, d.order_id, d.opened_by, d.reason, d.response, d.evidence_images, d.response_images, d.status, d.resolution_note,
       d.created_at, d.responded_at, d.resolved_at,
       o.status AS order_status,
       p.id AS product_id, p.title AS product_title, p.price AS product_price, p.status AS product_status,
@@ -129,11 +135,11 @@ async function findAll(filters = {}) {
   }))
 }
 
-async function respond(id, response, connection = null) {
+async function respond(id, response, responseImages = [], connection = null) {
   const db = getDb(connection)
   await db.query(
-    "UPDATE disputes SET response = ?, status = 'responded', responded_at = NOW() WHERE id = ?",
-    [response, id]
+    "UPDATE disputes SET response = ?, response_images = ?, status = 'responded', responded_at = NOW() WHERE id = ?",
+    [response, JSON.stringify(responseImages), id]
   )
 }
 

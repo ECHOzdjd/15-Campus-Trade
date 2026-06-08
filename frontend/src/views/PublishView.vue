@@ -188,10 +188,12 @@ const handlePriceSuggestion = async () => {
   aiLoading.value = true
   try {
     const res = await ai.priceSuggestion({
+      title: form.title,
       price: form.price,
       category: form.category,
       condition: form.condition,
-      description: form.description
+      description: form.description,
+      images: form.images
     })
     form.price = res.data.fairPrice
     ElMessage.success(`建议成交价 ￥${form.price}`)

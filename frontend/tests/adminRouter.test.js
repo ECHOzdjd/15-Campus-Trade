@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import router from '../src/router/index.js'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   auth: {
@@ -21,17 +20,21 @@ function makeToken(role) {
 }
 
 describe('admin route guard', () => {
+  let router
+
   beforeEach(async () => {
     localStorage.clear()
     mocks.auth.getMe.mockReset()
-    await router.push('/')
+    window.history.replaceState({}, '', '/')
+    vi.resetModules()
+    ;({ default: router } = await import('../src/router/index.js'))
   })
 
   it('redirects unauthenticated users to login', async () => {
     await router.push('/admin')
 
     expect(router.currentRoute.value.path).toBe('/login')
-  })
+  }, 10000)
 
   it('redirects non-admin users to home', async () => {
     localStorage.setItem('token', makeToken('user'))

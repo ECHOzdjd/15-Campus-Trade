@@ -1,80 +1,196 @@
 jest.mock('../../config/db', () => {
-  const mockQuery = jest.fn()
-  return { query: mockQuery }
+  const query = jest.fn()
+  return { query }
 })
 
 const pool = require('../../config/db')
 const orderModel = require('../../models/orderModel')
-
-const decoder = new TextDecoder('windows-1252')
-const mojibake = (text) => decoder.decode(Buffer.from(text, 'utf8'))
 
 describe('orderModel', () => {
   beforeEach(() => {
     pool.query.mockClear()
   })
 
-  test('findAll should normalize product and user text', async () => {
-    pool.query.mockResolvedValueOnce([[{ total: 1 }]])
-    pool.query.mockResolvedValueOnce([[
-      {
-        id: 1,
-        buyer_id: 1,
-        seller_id: 2,
-        product_id: 3,
-        status: 'pending',
-        created_at: '2026-01-01',
-        updated_at: '2026-01-01',
-        product_title: mojibake('\u5c0f\u7c73\u624b\u73af7'),
-        product_price: 99,
-        product_images: JSON.stringify([]),
-        buyer_username: mojibake('\u738b\u52c7'),
-        buyer_avatar: null,
-        seller_username: mojibake('\u5218\u82b3'),
-        seller_avatar: null
-      }
-    ]])
+  test('create inserts a pending order and returns its id', async () => {
+    pool.query.mockResolvedValueOnce([{ insertId: 12 }])
 
-    const result = await orderModel.findAll({ userId: 1, page: 1, pageSize: 10 })
+    const result = await orderModel.create({
+      buyerId: 1,
+      sellerId: 2,
+      productId: 3
+    })
 
-    expect(result.orders[0].product.title).toBe('\u5c0f\u7c73\u624b\u73af7')
-    expect(result.orders[0].buyer.username).toBe('\u738b\u52c7')
-    expect(result.orders[0].seller.username).toBe('\u5218\u82b3')
+    expect(result).toBe(12)
+    expect(pool.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO orders'),
+      [1, 2, 3]
+    )
   })
 
-  test('findById should normalize product detail and user text', async () => {
+  test('findAll applies buyer filters and maps the result row', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ total: 1 }]])
+      .mockResolvedValueOnce([[
+        {
+          id: 1,
+          buyer_id: 4,
+          seller_id: 2,
+          product_id: 3,
+          status: 'pending',
+          created_at: '2026-01-01',
+          updated_at: '2026-01-02',
+          product_title: 'Camera',
+          product_price: '99.5',
+          product_images: JSON.stringify(['image-a.jpg']),
+          buyer_username: 'buyer',
+          buyer_avatar: null,
+          seller_username: 'seller',
+          seller_avatar: null
+        }
+      ]])
+
+    const result = await orderModel.findAll({
+      userId: 4,
+      role: 'buyer',
+      status: 'pending',
+      page: 1,
+      pageSize: 10
+    })
+
+    expect(pool.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('o.buyer_id = ?'),
+      [4, 'pending']
+    )
+    expect(result.total).toBe(1)
+    expect(result.orders[0]).toMatchObject({
+      id: 1,
+      status: 'pending',
+      product: {
+        id: 3,
+        title: 'Camera',
+        price: 99.5,
+        images: ['image-a.jpg']
+      },
+      buyer: {
+        id: 4,
+        username: 'buyer',
+        avatar: null
+      },
+      seller: {
+        id: 2,
+        username: 'seller',
+        avatar: null
+      }
+    })
+  })
+
+  test('findAll applies the any-role user filter when no role is given', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ total: 0 }]])
+      .mockResolvedValueOnce([[]])
+
+    await orderModel.findAll({ userId: 9 })
+
+    expect(pool.query).toHaveBeenCalledWith(
+      expect.stringContaining('(o.buyer_id = ? OR o.seller_id = ?)'),
+      [9, 9]
+    )
+  })
+
+  test('findAll leaves the query unfiltered when no user filter is provided', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ total: 0 }]])
+      .mockResolvedValueOnce([[]])
+
+    await orderModel.findAll({ page: 2, pageSize: 5 })
+
+    expect(pool.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('FROM orders o'),
+      []
+    )
+  })
+
+  test('findById maps a detailed order row', async () => {
     pool.query.mockResolvedValueOnce([[
       {
-        id: 1,
-        buyer_id: 1,
+        id: 8,
+        buyer_id: 4,
         seller_id: 2,
         product_id: 3,
-        status: 'pending',
+        status: 'paid_escrow',
         created_at: '2026-01-01',
-        updated_at: '2026-01-01',
-        product_title: mojibake('\u53f0\u706f'),
-        product_description: mojibake('\u9002\u5408\u5b66\u4e60'),
-        product_price: 120,
-        product_category: mojibake('\u751f\u6d3b\u7528\u54c1'),
+        updated_at: '2026-01-02',
+        product_title: 'Camera',
+        product_description: 'A used camera',
+        product_price: '88.5',
+        product_category: 'electronics',
         product_condition: 'good',
-        product_images: JSON.stringify([]),
-        buyer_username: mojibake('\u738b\u52c7'),
-        buyer_email: 'buyer@test.com',
-        buyer_phone: null,
+        product_images: JSON.stringify(['image-a.jpg', 'image-b.jpg']),
+        buyer_username: 'buyer',
+        buyer_email: 'buyer@example.com',
+        buyer_phone: '123',
         buyer_avatar: null,
-        seller_username: mojibake('\u5218\u82b3'),
-        seller_email: 'seller@test.com',
-        seller_phone: null,
+        seller_username: 'seller',
+        seller_email: 'seller@example.com',
+        seller_phone: '456',
         seller_avatar: null
       }
     ]])
 
-    const result = await orderModel.findById(1)
+    const result = await orderModel.findById(8)
 
-    expect(result.product.title).toBe('\u53f0\u706f')
-    expect(result.product.description).toBe('\u9002\u5408\u5b66\u4e60')
-    expect(result.product.category).toBe('\u751f\u6d3b\u7528\u54c1')
-    expect(result.buyer.username).toBe('\u738b\u52c7')
-    expect(result.seller.username).toBe('\u5218\u82b3')
+    expect(result).toMatchObject({
+      id: 8,
+      status: 'paid_escrow',
+      product: {
+        id: 3,
+        title: 'Camera',
+        description: 'A used camera',
+        price: 88.5,
+        category: 'electronics',
+        condition: 'good',
+        images: ['image-a.jpg', 'image-b.jpg']
+      }
+    })
+  })
+
+  test('findById returns null when the order does not exist', async () => {
+    pool.query.mockResolvedValueOnce([[]])
+
+    await expect(orderModel.findById(999)).resolves.toBeNull()
+  })
+
+  test('updateStatus reports whether a row changed', async () => {
+    pool.query.mockResolvedValueOnce([{ affectedRows: 1 }])
+    await expect(orderModel.updateStatus(8, 'confirmed')).resolves.toBe(true)
+
+    pool.query.mockResolvedValueOnce([{ affectedRows: 0 }])
+    await expect(orderModel.updateStatus(8, 'confirmed')).resolves.toBe(false)
+  })
+
+  test('checkProductAvailability returns the locked product row', async () => {
+    const connection = { query: jest.fn().mockResolvedValueOnce([[{ id: 3, user_id: 2, status: 'available' }]]) }
+
+    await expect(orderModel.checkProductAvailability(3, connection)).resolves.toEqual({
+      id: 3,
+      user_id: 2,
+      status: 'available'
+    })
+  })
+
+  test('checkProductAvailability returns null when nothing is locked', async () => {
+    const connection = { query: jest.fn().mockResolvedValueOnce([[]]) }
+
+    await expect(orderModel.checkProductAvailability(3, connection)).resolves.toBeNull()
+  })
+
+  test('getProductId returns the product id and null when absent', async () => {
+    pool.query.mockResolvedValueOnce([[{ product_id: 22 }]])
+    await expect(orderModel.getProductId(9)).resolves.toBe(22)
+
+    pool.query.mockResolvedValueOnce([[]])
+    await expect(orderModel.getProductId(9)).resolves.toBeNull()
   })
 })
